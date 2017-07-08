@@ -72,15 +72,6 @@ typedef struct {
 	float im;
 } airspyhf_complex_float_t;
 
-#pragma pack(push,1)
-
-typedef struct {
-	int16_t im;
-	int16_t re;
-} airspyhf_complex_int16_t;
-
-#pragma pack(pop)
-
 typedef struct {
 	uint32_t part_id;
 	uint32_t serial_no[4];
@@ -92,7 +83,6 @@ enum airspyhf_board_id
 	AIRSPYHF_BOARD_ID_AIRSPYHF_REV_A = 1,
 	AIRSPYHF_BOARD_ID_INVALID = 0xFF,
 };
-
 
 typedef struct airspyhf_device airspyhf_device_t;
 

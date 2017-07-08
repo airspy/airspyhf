@@ -73,6 +73,15 @@ static const char str_prefix_serial_airspyhf[STR_PREFIX_SERIAL_AIRSPYHF_SIZE] =
 #define TO_LE(x) x
 #endif
 
+#pragma pack(push,1)
+
+typedef struct {
+	int16_t im;
+	int16_t re;
+} airspyhf_complex_int16_t;
+
+#pragma pack(pop)
+
 struct airspyhf_device
 {
 	libusb_context* usb_context;

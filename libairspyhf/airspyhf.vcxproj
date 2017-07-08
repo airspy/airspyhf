@@ -81,29 +81,29 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\..\libpthread-2-9-1-win\include;..\..\libusb-1.0.19\include\libusb-1.0;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\libpthread-2-9-1-win\lib\x86;..\..\libusb-1.0.19\MS32\dll;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\libpthread-2-9-1-win\include;..\..\libusb-1.0.20\include\libusb-1.0;$(IncludePath)</IncludePath>
+    <LibraryPath>..\..\libpthread-2-9-1-win\lib\x86;..\..\libusb-1.0.20\MS32\dll;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\..\libpthread-2-9-1-win\include;..\..\libusb-1.0.19\include\libusb-1.0;$(VC_IncludePath);$(WindowsSdk_71A_IncludePath);</IncludePath>
-    <LibraryPath>..\..\libpthread-2-9-1-win\lib\x64;..\..\libusb-1.0.19\MS64\dll;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\libpthread-2-9-1-win\include;..\..\libusb-1.0.20\include\libusb-1.0;$(VC_IncludePath);$(WindowsSdk_71A_IncludePath);</IncludePath>
+    <LibraryPath>..\..\libpthread-2-9-1-win\lib\x64;..\..\libusb-1.0.20\MS64\dll;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\..\libpthread-2-9-1-win\include;..\..\libusb-1.0.19\include\libusb-1.0;$(IncludePath)</IncludePath>
-    <LibraryPath>..\..\libpthread-2-9-1-win\lib\x86;..\..\libusb-1.0.19\MS32\dll;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\libpthread-2-9-1-win\include;..\..\libusb-1.0.20\include\libusb-1.0;$(IncludePath)</IncludePath>
+    <LibraryPath>..\..\libpthread-2-9-1-win\lib\x86;..\..\libusb-1.0.20\MS32\dll;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\..\libpthread-2-9-1-win\include;..\..\libusb-1.0.19\include\libusb-1.0;$(VC_IncludePath);$(WindowsSdk_71A_IncludePath);</IncludePath>
-    <LibraryPath>..\..\libpthread-2-9-1-win\lib\x64;..\..\libusb-1.0.19\MS64\dll;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\..\libpthread-2-9-1-win\include;..\..\libusb-1.0.20\include\libusb-1.0;$(VC_IncludePath);$(WindowsSdk_71A_IncludePath);</IncludePath>
+    <LibraryPath>..\..\libpthread-2-9-1-win\lib\x64;..\..\libusb-1.0.20\MS64\dll;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)$(PlatformTarget)\$(Configuration)\</IntDir>
   </PropertyGroup>
