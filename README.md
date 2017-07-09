@@ -71,7 +71,7 @@ Debug version:
 
 ## Clean CMake temporary files/dirs:
 
-`cd airspyone_host-master/build`
+`cd airspyhf-master/build`
 
 `rm -rf *`
 
