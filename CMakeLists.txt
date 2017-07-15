@@ -9,7 +9,7 @@ if(MSVC11)
 endif(MSVC11)
 
 add_subdirectory(libairspyhf)
-
+add_subdirectory(tools)
 ########################################################################
 # Create uninstall target
 ########################################################################
