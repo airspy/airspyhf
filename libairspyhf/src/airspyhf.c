@@ -113,7 +113,6 @@ struct airspyhf_device
 	volatile int received_buffer_count;
 	airspyhf_complex_float_t *output_buffer;
 	void* ctx;
-//	enum airspyhf_sample_type sample_type;
 };
 
 typedef struct calibration_record
@@ -124,6 +123,8 @@ typedef struct calibration_record
 
 static const uint16_t airspyhf_usb_vid = 0x03EB;
 static const uint16_t airspyhf_usb_pid = 0x800C;
+
+static int airspyhf_config_read(airspyhf_device_t* device, uint8_t *buffer, uint16_t length);
 
 static int cancel_transfers(airspyhf_device_t* device)
 {
@@ -711,7 +712,84 @@ static void airspyhf_open_device(airspyhf_device_t* device,
 	return;
 }
 
-static int airspyhf_config_read(airspyhf_device_t* device, uint8_t *buffer, uint16_t length);
+int airspyhf_list_devices(uint64_t *serials, int count)
+{
+	libusb_device_handle* libusb_dev_handle;
+	struct libusb_context *context;
+	libusb_device** devices = NULL;
+	libusb_device_handle* dev_handle;
+	libusb_device *dev;
+	struct libusb_device_descriptor device_descriptor;
+
+	int serial_descriptor_index;
+	int serial_number_len;
+	int output_count;
+	int i;
+	char serial_number_expected[AIRSPYHF_SERIAL_SIZE + 1];
+	unsigned char serial_number[AIRSPYHF_SERIAL_SIZE + 1];
+
+	memset(serials, 0, sizeof(uint64_t) * count);
+
+	if (libusb_init(&context) != 0)
+	{
+		return AIRSPYHF_ERROR;
+	}
+
+	if (libusb_get_device_list(context, &devices) < 0)
+	{
+		return AIRSPYHF_ERROR;
+	}
+
+	i = 0;
+	output_count = 0;
+	while ((dev = devices[i++]) != NULL && output_count < count)
+	{
+		libusb_get_device_descriptor(dev, &device_descriptor);
+
+		if ((device_descriptor.idVendor == airspyhf_usb_vid) &&
+			(device_descriptor.idProduct == airspyhf_usb_pid))
+		{
+			serial_descriptor_index = device_descriptor.iSerialNumber;
+			if (serial_descriptor_index > 0)
+			{
+				if (libusb_open(dev, &libusb_dev_handle) != 0)
+				{
+					continue;
+				}
+
+				serial_number_len = libusb_get_string_descriptor_ascii(libusb_dev_handle,
+					serial_descriptor_index,
+					serial_number,
+					sizeof(serial_number));
+
+				if (serial_number_len == AIRSPYHF_SERIAL_SIZE)
+				{
+					char *start, *end;
+					uint64_t serial;
+
+					serial_number[AIRSPYHF_SERIAL_SIZE] = 0;
+					start = (char*)(serial_number + STR_PREFIX_SERIAL_AIRSPYHF_SIZE);
+					end = NULL;
+					serial = strtoull(start, &end, 16);
+					if (serial == 0 && start == end)
+					{
+						libusb_close(libusb_dev_handle);
+						continue;
+					}
+
+					serials[output_count] = serial;
+					output_count++;
+				}
+
+				libusb_close(libusb_dev_handle);
+			}
+		}
+	}
+
+	libusb_free_device_list(devices, 1);
+	libusb_exit(context);
+	return output_count;
+}
 
 static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number)
 {
