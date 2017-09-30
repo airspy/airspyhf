@@ -32,7 +32,7 @@ typedef enum
     RECEIVER_MODE_ON                    = 1
 } receiver_mode_t;
 
-#define AIRSPYHF_CMD_MAX (7)
+#define AIRSPYHF_CMD_MAX (9)
 typedef enum
 {
     AIRSPYHF_INVALID                    = 0,
@@ -42,7 +42,9 @@ typedef enum
     AIRSPYHF_SET_SAMPLERATE             = 4,
     AIRSPYHF_CONFIG_READ                = 5,
     AIRSPYHF_CONFIG_WRITE               = 6,
-    AIRSPYHF_GET_SERIALNO_BOARDID       = AIRSPYHF_CMD_MAX
+    AIRSPYHF_GET_SERIALNO_BOARDID       = 7,
+	AIRSPYHF_SET_USER_OUTPUT			= 8,
+	AIRSPYHF_GET_VERSION_STRING			= AIRSPYHF_CMD_MAX,
 } airspyhf_vendor_request;
 
 #endif

@@ -94,8 +94,15 @@ typedef struct {
 	uint64_t dropped_samples;
 } airspyhf_transfer_t;
 
+typedef struct {
+	uint32_t major_version;
+	uint32_t minor_version;
+	uint32_t revision;
+} airspyhf_lib_version_t;
+
 typedef int (*airspyhf_sample_block_cb_fn) (airspyhf_transfer_t* transfer_fn);
 
+extern ADDAPI void ADDCALL airspyhf_lib_version(airspyhf_lib_version_t* lib_version);
 extern ADDAPI int ADDCALL airspyhf_list_devices(uint64_t *serials, int count);
 extern ADDAPI int ADDCALL airspyhf_open(airspyhf_device_t** device);
 extern ADDAPI int ADDCALL airspyhf_open_sn(airspyhf_device_t** device, uint64_t serial_number);
@@ -110,7 +117,7 @@ extern ADDAPI int ADDCALL airspyhf_get_calibration(airspyhf_device_t* device, in
 extern ADDAPI int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb);
 extern ADDAPI int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_board_partid_serialno_read(airspyhf_device_t* device, airspyhf_read_partid_serialno_t* read_partid_serialno);
-
+extern ADDAPI int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* version, uint8_t length);
 #ifdef __cplusplus
 }
 #endif

@@ -67,6 +67,8 @@ typedef int bool;
 static const char str_prefix_serial_airspyhf[STR_PREFIX_SERIAL_AIRSPYHF_SIZE] =
 { 'A', 'I', 'R', 'S', 'P', 'Y', 'H', 'F', ' ', 'S', 'N', ':' };
 
+#define VERSION_STRING_SIZE (64)
+
 #ifdef AIRSPYHF_BIG_ENDIAN
 #define TO_LE(x) __builtin_bswap32(x)
 #else
@@ -717,7 +719,6 @@ int airspyhf_list_devices(uint64_t *serials, int count)
 	libusb_device_handle* libusb_dev_handle;
 	struct libusb_context *context;
 	libusb_device** devices = NULL;
-	libusb_device_handle* dev_handle;
 	libusb_device *dev;
 	struct libusb_device_descriptor device_descriptor;
 
@@ -725,7 +726,6 @@ int airspyhf_list_devices(uint64_t *serials, int count)
 	int serial_number_len;
 	int output_count;
 	int i;
-	char serial_number_expected[AIRSPYHF_SERIAL_SIZE + 1];
 	unsigned char serial_number[AIRSPYHF_SERIAL_SIZE + 1];
 
 	memset(serials, 0, sizeof(uint64_t) * count);
@@ -892,6 +892,13 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 	*device = lib_device;
 
 	return AIRSPYHF_SUCCESS;
+}
+
+void ADDCALL airspyhf_lib_version(airspyhf_lib_version_t* lib_version)
+{
+	lib_version->major_version = AIRSPYHF_VER_MAJOR;
+	lib_version->minor_version = AIRSPYHF_VER_MINOR;
+	lib_version->revision = AIRSPYHF_VER_REVISION;
 }
 
 int ADDCALL airspyhf_open_sn(airspyhf_device_t** device, uint64_t serial_number)
@@ -1210,4 +1217,38 @@ int ADDCALL airspyhf_board_partid_serialno_read(airspyhf_device_t* device, airsp
 	}
 	
 	return AIRSPYHF_SUCCESS;	
+}
+
+int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* version, uint8_t length)
+{
+	int result;
+	char version_local[VERSION_STRING_SIZE];
+
+	result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		AIRSPYHF_GET_VERSION_STRING,
+		0,
+		0,
+		(unsigned char*)version_local,
+		(VERSION_STRING_SIZE - 1),
+		0);
+
+	if (result < 0)
+	{
+		return AIRSPYHF_ERROR;
+	}
+	else
+	{
+		if (length > 0)
+		{
+			memcpy(version, version_local, length - 1);
+			version[length - 1] = 0;
+			return AIRSPYHF_SUCCESS;
+		}
+		else
+		{
+			return AIRSPYHF_ERROR;
+		}
+	}
 }
