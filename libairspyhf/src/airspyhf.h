@@ -94,8 +94,8 @@ typedef enum
 
 typedef enum
 {
-	USER_OUTPUT_LOW		= 0,
-	USER_OUTPUT_HIGH	= 1
+	AIRSPYHF_USER_OUTPUT_LOW	= 0,
+	AIRSPYHF_USER_OUTPUT_HIGH	= 1
 } airspyhf_user_output_state_t;
 
 typedef struct airspyhf_device airspyhf_device_t;
