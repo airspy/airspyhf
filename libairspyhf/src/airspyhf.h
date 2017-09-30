@@ -84,6 +84,20 @@ enum airspyhf_board_id
 	AIRSPYHF_BOARD_ID_INVALID = 0xFF,
 };
 
+typedef enum
+{
+	AIRSPYHF_USER_OUTPUT_0 = 0,
+	AIRSPYHF_USER_OUTPUT_1 = 1,
+	AIRSPYHF_USER_OUTPUT_2 = 2,
+	AIRSPYHF_USER_OUTPUT_3 = 3
+} airspyhf_user_output_t;
+
+typedef enum
+{
+	USER_OUTPUT_LOW		= 0,
+	USER_OUTPUT_HIGH	= 1
+} airspyhf_user_output_state_t;
+
 typedef struct airspyhf_device airspyhf_device_t;
 
 typedef struct {
@@ -118,6 +132,7 @@ extern ADDAPI int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, in
 extern ADDAPI int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_board_partid_serialno_read(airspyhf_device_t* device, airspyhf_read_partid_serialno_t* read_partid_serialno);
 extern ADDAPI int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* version, uint8_t length);
+extern ADDAPI int ADDCALL airspyhf_set_user_output(airspyhf_device_t* device, airspyhf_user_output_t pin, airspyhf_user_output_state_t value);
 #ifdef __cplusplus
 }
 #endif

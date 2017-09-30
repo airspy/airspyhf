@@ -1252,3 +1252,25 @@ int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* versio
 		}
 	}
 }
+
+int ADDCALL airspyhf_set_user_output(airspyhf_device_t* device, airspyhf_user_output_t pin, airspyhf_user_output_state_t value)
+{
+	int result;
+
+	result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		AIRSPYHF_SET_USER_OUTPUT,
+		(uint16_t)pin,
+		(uint16_t)value,
+		NULL,
+		0,
+		0);
+
+	if (result < 0)
+	{
+		return AIRSPYHF_ERROR;
+	}
+
+	return AIRSPYHF_SUCCESS;
+}
