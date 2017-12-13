@@ -1073,7 +1073,7 @@ int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 {
 	const int tuning_alignment = 1000;
 	const int if_shift = 5000;
-	const uint32_t lo_low_khz = 150;
+	const uint32_t lo_low_khz = 200;
 
 	int result;
 	uint8_t buf[4];

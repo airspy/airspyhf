@@ -174,10 +174,18 @@ static void adjust_phase(iq_balancer_t *iq_balancer, airspyhf_complex_float_t *i
 	}
 }
 
+static void multiply_complex_complex(airspyhf_complex_float_t *a, const airspyhf_complex_float_t *b)
+{
+	float re = a->re * b->re - a->im * b->im;
+	a->im = a->im * b->re + a->re * b->im;
+	a->re = re;
+}
+
 static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, float phase)
 {
 	int i, j;
-	float result;
+	airspyhf_complex_float_t acc;
+	airspyhf_complex_float_t prod;
 
 	airspyhf_complex_float_t fftPtr[FFTBins * sizeof(airspyhf_complex_float_t)];
 
@@ -188,16 +196,18 @@ static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, f
 	window(fftPtr, FFTBins);
 	fft(fftPtr, FFTBins);
 
-	result = 0.0f;
+	acc.re = 0.0f;
+	acc.im = 0.0f;
 
 	for (i = 1, j = FFTBins - 1; i < FFTBins / 2; i++, j--)
 	{
-		float binMag = fabsf(fftPtr[i].re) + fabsf(fftPtr[i].im);
-		float imageMag = fabsf(fftPtr[j].re) + fabsf(fftPtr[j].im);
-		result += fabsf(binMag - imageMag);
+		prod = fftPtr[i];
+		multiply_complex_complex(&prod, fftPtr + j);
+		acc.re += prod.re;
+		acc.im += prod.im;
 	}
 
-	return result;
+	return acc.re * acc.re + acc.im * acc.im;
 }
 
 static void estimate_phase_imbalance(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq)
@@ -216,7 +226,7 @@ static void estimate_phase_imbalance(iq_balancer_t *iq_balancer, airspyhf_comple
 
 	float candidateUtility = utility(iq_balancer, iq, phase);
 
-	if (candidateUtility > u)
+	if (candidateUtility < u)
 	{
 		iq_balancer->phase += PhaseAlpha * (phase - iq_balancer->phase);
 	}
