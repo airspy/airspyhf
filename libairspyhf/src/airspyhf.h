@@ -35,7 +35,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #define AIRSPYHF_ENDPOINT_IN (1)
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(STATIC_AIRSPYHFPLUS)
 	 #define ADD_EXPORTS
 	 
 	/* You should define ADD_EXPORTS *only* when building the DLL. */
