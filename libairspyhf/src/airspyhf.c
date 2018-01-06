@@ -45,7 +45,9 @@ typedef int bool;
 #define false 0
 #endif
 
+#ifndef M_PI
 #define M_PI (3.14159265359)
+#endif
 
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
@@ -577,10 +579,7 @@ static void airspyhf_open_device(airspyhf_device_t* device,
 	ssize_t cnt;
 	int serial_descriptor_index;
 	struct libusb_device_descriptor device_descriptor;
-	char serial_number_expected[AIRSPYHF_SERIAL_SIZE + 1];
 	unsigned char serial_number[AIRSPYHF_SERIAL_SIZE + 1];
-	uint32_t serial_number_msb_val;
-	uint32_t serial_number_lsb_val;
 
 	libusb_dev_handle = &device->usb_device;
 	*libusb_dev_handle = NULL;
@@ -615,19 +614,19 @@ static void airspyhf_open_device(airspyhf_device_t* device,
 						serial_descriptor_index,
 						serial_number,
 						sizeof(serial_number));
-					if (serial_number_len == AIRSPYHF_SERIAL_SIZE)
+
+					if (serial_number_len == AIRSPYHF_SERIAL_SIZE && !memcmp(str_prefix_serial_airspyhf, serial_number, STR_PREFIX_SERIAL_AIRSPYHF_SIZE))
 					{
-						serial_number[AIRSPYHF_SERIAL_SIZE] = 0;
-						upper_string(serial_number, AIRSPYHF_SERIAL_SIZE);
-						serial_number_msb_val = (uint32_t)(serial_number_val >> 32);
-						serial_number_lsb_val = (uint32_t)(serial_number_val & 0xFFFFFFFF);
-
-						sprintf(serial_number_expected, "%s%08X%08X",
-							str_prefix_serial_airspyhf,
-							serial_number_msb_val,
-							serial_number_lsb_val);
-
-						if (strncmp((const char*)serial_number, serial_number_expected, AIRSPYHF_SERIAL_SIZE) == 0)
+						uint64_t serial = SERIAL_NUMBER_UNUSED;
+						// use same code to detemine device's serial number as in airspyhf_list_devices()
+						{
+							char *start, *end;
+							serial_number[AIRSPYHF_SERIAL_SIZE] = 0;
+							start = (char*)(serial_number + STR_PREFIX_SERIAL_AIRSPYHF_SIZE);
+							end = NULL;
+							serial = strtoull(start, &end, 16);
+						}
+						if (serial == serial_number_val)
 						{
 							result = libusb_set_configuration(dev_handle, 1);
 							if (result != 0)
@@ -765,7 +764,7 @@ int airspyhf_list_devices(uint64_t *serials, int count)
 					serial_number,
 					sizeof(serial_number));
 
-				if (serial_number_len == AIRSPYHF_SERIAL_SIZE)
+				if (serial_number_len == AIRSPYHF_SERIAL_SIZE && !memcmp(str_prefix_serial_airspyhf, serial_number, STR_PREFIX_SERIAL_AIRSPYHF_SIZE))
 				{
 					char *start, *end;
 					uint64_t serial;
