@@ -24,10 +24,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #include "airspyhf.h"
 
-#define FFTBins 128
-#define SkippedBuffers 4
-#define MaximumStep 1e-3f
-#define MinimumStep 1e-5f
+#define FFTBins 256
+#define SkippedBuffers 5
+#define MaximumStep 1e-2f
+#define MinimumStep 1e-7f
 #define StepIncrement 1.1f
 #define StepDecrement 0.9f
 #define MaxPhaseCorrection 0.1f
@@ -42,7 +42,6 @@ typedef struct _iq_balancer_t
 	float phase;
 	float last_phase;
 	float step;
-	float step_factor;
 	double gain;
 	double iampavg;
 	double qampavg;

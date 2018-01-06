@@ -181,6 +181,11 @@ static void multiply_complex_complex(airspyhf_complex_float_t *a, const airspyhf
 	a->re = re;
 }
 
+static float fsign(const float x)
+{
+	return x >= 0 ? 1.0f : -1.0f;
+}
+
 static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, float phase)
 {
 	int i, j;
@@ -229,19 +234,23 @@ static void estimate_phase_imbalance(iq_balancer_t *iq_balancer, airspyhf_comple
 	if (candidateUtility < u)
 	{
 		iq_balancer->phase += PhaseAlpha * (phase - iq_balancer->phase);
+		iq_balancer->step *= StepIncrement;
 	}
 	else
 	{
-		float stepmag = fabsf(iq_balancer->step);
-		if (stepmag < MinimumStep)
-		{
-			iq_balancer->step_factor = -StepIncrement;
-		}
-		else if (stepmag > MaximumStep)
-		{
-			iq_balancer->step_factor = -StepDecrement;
-		}
-		iq_balancer->step *= iq_balancer->step_factor;
+		iq_balancer->step *= -StepDecrement;
+	}
+
+	float stepmag = fabsf(iq_balancer->step);
+	float stepsign = fsign(iq_balancer->step);
+
+	if (stepmag < MinimumStep)
+	{
+		iq_balancer->step = MinimumStep * stepsign;
+	}
+	else if (stepmag > MaximumStep)
+	{
+		iq_balancer->step = MaximumStep * stepsign;
 	}
 }
 
@@ -301,7 +310,6 @@ void iq_balancer_init(iq_balancer_t *iq_balancer)
 	iq_balancer->phase = 0.0f;
 	iq_balancer->last_phase = 0.0f;
 	iq_balancer->step = MinimumStep;
-	iq_balancer->step_factor = StepIncrement;
 	iq_balancer->gain = 1.0;
 	iq_balancer->iampavg = 1.0;
 	iq_balancer->qampavg = 1.0;
