@@ -233,24 +233,28 @@ static void estimate_phase_imbalance(iq_balancer_t *iq_balancer, airspyhf_comple
 
 	if (candidateUtility < u)
 	{
+		iq_balancer->fail = 0;
 		iq_balancer->phase += PhaseAlpha * (phase - iq_balancer->phase);
 		iq_balancer->step *= StepIncrement;
+		if (fabsf(iq_balancer->step) > MaximumStep)
+		{
+			iq_balancer->step = MaximumStep * fsign(iq_balancer->step);
+		}
 	}
 	else
 	{
-		iq_balancer->step *= -StepDecrement;
-	}
+		if (++iq_balancer->fail > MaximumFail)
+		{
+			iq_balancer->fail = 0;
+			iq_balancer->step = -iq_balancer->step;
+		}
 
-	float stepmag = fabsf(iq_balancer->step);
-	float stepsign = fsign(iq_balancer->step);
+		iq_balancer->step *= StepDecrement;
 
-	if (stepmag < MinimumStep)
-	{
-		iq_balancer->step = MinimumStep * stepsign;
-	}
-	else if (stepmag > MaximumStep)
-	{
-		iq_balancer->step = MaximumStep * stepsign;
+		if (fabsf(iq_balancer->step) < MinimumStep)
+		{
+			iq_balancer->step = MinimumStep * fsign(iq_balancer->step);
+		}
 	}
 }
 
@@ -310,6 +314,7 @@ void iq_balancer_init(iq_balancer_t *iq_balancer)
 	iq_balancer->phase = 0.0f;
 	iq_balancer->last_phase = 0.0f;
 	iq_balancer->step = MinimumStep;
+	iq_balancer->fail = 0;
 	iq_balancer->gain = 1.0;
 	iq_balancer->iampavg = 1.0;
 	iq_balancer->qampavg = 1.0;
