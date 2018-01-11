@@ -115,8 +115,9 @@ struct airspyhf_device
 	volatile int received_samples_queue_head;
 	volatile int received_samples_queue_tail;
 	volatile int received_buffer_count;
-	airspyhf_complex_float_t *output_buffer;
+	void *output_buffer;
 	void* ctx;
+	airspyhf_sample_type_t sample_type;
 };
 
 typedef struct calibration_record
@@ -193,7 +194,16 @@ static int allocate_transfers(airspyhf_device_t* const device)
 
 	if (device->transfers == NULL)
 	{
-		device->output_buffer = (airspyhf_complex_float_t *) malloc((device->buffer_size / sizeof(airspyhf_complex_int16_t)) * sizeof(airspyhf_complex_float_t));
+	    switch (device->sample_type)
+	    {
+	    case AIRSPYHF_SAMPLE_INT16_NDSP_IQ:
+            device->output_buffer = malloc(device->buffer_size);
+	        break;
+	    case AIRSPYHF_SAMPLE_FLOAT32_IQ:
+	    default:
+	        device->output_buffer = malloc((device->buffer_size / sizeof(airspyhf_complex_int16_t)) * sizeof(airspyhf_complex_float_t));
+	        break;
+	    }
 
 		for (i = 0; i < RAW_BUFFER_COUNT; i++)
 		{
@@ -289,7 +299,7 @@ static inline void rotate_complex(airspyhf_complex_float_t *vec, const airspyhf_
 	multiply_complex_real(vec, norm);
 }
 
-static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t *src, airspyhf_complex_float_t *dest, int count)
+static void convert_samples_float(airspyhf_device_t* device, airspyhf_complex_int16_t *src, airspyhf_complex_float_t *dest, int count)
 {
 	const float scale = 1.0f / 32768;
 
@@ -316,6 +326,17 @@ static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t 
 	}
 
 	device->vec = vec;
+}
+
+static void convert_samples_int16_ndsp(airspyhf_complex_int16_t *src, airspyhf_complex_int16_t *dest, int count)
+{
+    int i;
+
+    for (i = 0; i < count; i++)
+    {
+        dest[i].re = src[i].im;
+        dest[i].im = src[i].re;
+    }
 }
 
 static void* consumer_threadproc(void *arg)
@@ -353,13 +374,23 @@ static void* consumer_threadproc(void *arg)
 
 		sample_count = device->buffer_size / sizeof(airspyhf_complex_int16_t);
 
-		convert_samples(device, input_samples, device->output_buffer, sample_count);
+		switch(device->sample_type)
+		{
+		case AIRSPYHF_SAMPLE_INT16_NDSP_IQ:
+            convert_samples_int16_ndsp(input_samples, (airspyhf_complex_int16_t*) device->output_buffer, sample_count);
+		    break;
+		case AIRSPYHF_SAMPLE_FLOAT32_IQ:
+		default:
+	        convert_samples_float(device, input_samples, (airspyhf_complex_float_t*) device->output_buffer, sample_count);
+		    break;
+		}
 
 		transfer.device = device;
 		transfer.ctx = device->ctx;
-		transfer.samples = device->output_buffer;
+        transfer.samples = device->output_buffer;
 		transfer.sample_count = sample_count;
 		transfer.dropped_samples = (uint64_t) dropped_buffers * (uint64_t) sample_count;
+		transfer.sample_type = device->sample_type;
 
 		if (device->callback(&transfer) != 0)
 		{
@@ -399,7 +430,7 @@ static void airspyhf_libusb_transfer_callback(struct libusb_transfer* usb_transf
 
 			device->dropped_buffers_queue[device->received_samples_queue_head] = device->dropped_buffers;
 			device->dropped_buffers = 0;
-			
+
 			device->received_samples_queue_head = (device->received_samples_queue_head + 1) & (RAW_BUFFER_COUNT - 1);
 			device->received_buffer_count++;
 
@@ -831,6 +862,7 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 		return result;
 	}
 
+	lib_device->sample_type = AIRSPYHF_SAMPLE_FLOAT32_IQ;
 	lib_device->transfers = NULL;
 	lib_device->callback = NULL;
 	lib_device->transfer_count = 16;
@@ -858,7 +890,7 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 	}
 
 	lib_device->current_samplerate = lib_device->supported_samplerates[0];
-	
+
 	result = allocate_transfers(lib_device);
 	if (result != 0)
 	{
@@ -952,7 +984,7 @@ int ADDCALL airspyhf_get_samplerates(airspyhf_device_t* device, uint32_t* buffer
 	}
 	else if (len <= device->supported_samplerate_count)
 	{
-		memcpy(buffer, device->supported_samplerates, len * sizeof(uint32_t));		
+		memcpy(buffer, device->supported_samplerates, len * sizeof(uint32_t));
 	}
 	else
 	{
@@ -976,7 +1008,7 @@ int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplera
 				samplerate = i;
 				break;
 			}
-		}		
+		}
 	}
 
 	if (samplerate >= device->supported_samplerate_count)
@@ -1003,8 +1035,14 @@ int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplera
 	}
 
 	device->current_samplerate = device->supported_samplerates[samplerate];
-	
+
 	return AIRSPYHF_SUCCESS;
+}
+
+int ADDCALL airspyhf_set_sample_type(airspyhf_device_t* device, airspyhf_sample_type_t sample_type)
+{
+    device->sample_type = sample_type;
+    return AIRSPYHF_SUCCESS;
 }
 
 int ADDCALL airspyhf_set_receiver_mode(airspyhf_device_t* device, receiver_mode_t value)
@@ -1082,10 +1120,10 @@ int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 
 	int result;
 	uint8_t buf[4];
-	
+
 	uint32_t adjusted_freq_hz = (uint32_t) ((int64_t) freq_hz * (int64_t) (1000000000LL + device->calibration_ppb) / 1000000000LL);
 	uint32_t freq_khz = MAX(lo_low_khz, (adjusted_freq_hz + if_shift + tuning_alignment / 2) / tuning_alignment);
-	
+
 	if (device->freq_khz != freq_khz)
 	{
 		buf[0] = (uint8_t) ((freq_khz >> 24) & 0xff);
@@ -1220,8 +1258,8 @@ int ADDCALL airspyhf_board_partid_serialno_read(airspyhf_device_t* device, airsp
 	{
 		return AIRSPYHF_ERROR;
 	}
-	
-	return AIRSPYHF_SUCCESS;	
+
+	return AIRSPYHF_SUCCESS;
 }
 
 int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* version, uint8_t length)
