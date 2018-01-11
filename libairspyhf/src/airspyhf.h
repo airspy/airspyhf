@@ -10,12 +10,12 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
 		Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-		Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the 
+		Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the
 	documentation and/or other materials provided with the distribution.
 		Neither the name of Airspy HF+ nor the names of its contributors may be used to endorse or promote products derived from this software
 	without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
 THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
 IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -37,7 +37,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #if defined(_WIN32) && !defined(STATIC_AIRSPYHFPLUS)
 	 #define ADD_EXPORTS
-	 
+
 	/* You should define ADD_EXPORTS *only* when building the DLL. */
 	#ifdef ADD_EXPORTS
 		#define ADDAPI __declspec(dllexport)
@@ -86,6 +86,12 @@ enum airspyhf_board_id
 
 typedef enum
 {
+    AIRSPYHF_SAMPLE_FLOAT32_IQ = 0,   /* 2 * 32bit float per sample */
+    AIRSPYHF_SAMPLE_INT16_NDSP_IQ = 1 /* 2 * 16bit int per sample - no DSP processing */
+} airspyhf_sample_type_t;
+
+typedef enum
+{
 	AIRSPYHF_USER_OUTPUT_0 = 0,
 	AIRSPYHF_USER_OUTPUT_1 = 1,
 	AIRSPYHF_USER_OUTPUT_2 = 2,
@@ -103,9 +109,10 @@ typedef struct airspyhf_device airspyhf_device_t;
 typedef struct {
 	airspyhf_device_t* device;
 	void* ctx;
-	airspyhf_complex_float_t* samples;
+	void* samples; /* depends on sample_type */
 	int sample_count;
 	uint64_t dropped_samples;
+	airspyhf_sample_type_t sample_type;
 } airspyhf_transfer_t;
 
 typedef struct {
@@ -127,6 +134,7 @@ extern ADDAPI int ADDCALL airspyhf_is_streaming(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz);
 extern ADDAPI int ADDCALL airspyhf_get_samplerates(airspyhf_device_t* device, uint32_t* buffer, const uint32_t len);
 extern ADDAPI int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplerate);
+extern ADDAPI int ADDCALL airspyhf_set_sample_type(airspyhf_device_t* device, airspyhf_sample_type_t sample_type);
 extern ADDAPI int ADDCALL airspyhf_get_calibration(airspyhf_device_t* device, int32_t* ppb);
 extern ADDAPI int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb);
 extern ADDAPI int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device);
