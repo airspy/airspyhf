@@ -1,0 +1,2 @@
+#include "git_version.h"
+const char* git_version = "@GIT_VERSION@";

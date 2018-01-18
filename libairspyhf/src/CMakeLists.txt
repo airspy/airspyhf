@@ -25,9 +25,31 @@
 #
 # Based heavily upon the libftdi cmake setup.
 
+FIND_PACKAGE(Git)
+
+execute_process(COMMAND
+  "${GIT_EXECUTABLE}" describe --dirty --always --tags
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  OUTPUT_VARIABLE GIT_VERSION
+  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/git_version.c.in" "${CMAKE_CURRENT_BINARY_DIR}/git_version.c" @ONLY)
+
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
+
 # Targets
-set(c_sources ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf.c ${CMAKE_CURRENT_SOURCE_DIR}/iqbalancer.c CACHE INTERNAL "List of C sources")
-set(c_headers ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf.h ${CMAKE_CURRENT_SOURCE_DIR}/iqbalancer.h ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf_commands.h CACHE INTERNAL "List of C headers")
+set(c_sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/iqbalancer.c
+    ${CMAKE_CURRENT_BINARY_DIR}/git_version.c
+  CACHE INTERNAL "List of C sources" )
+
+set(c_headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/iqbalancer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf_commands.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/git_version.h
+  CACHE INTERNAL "List of C headers" )
 
 if(MINGW)
     # This gets us DLL resource information when compiling on MinGW.

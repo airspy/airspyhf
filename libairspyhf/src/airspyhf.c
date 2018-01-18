@@ -38,6 +38,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #include "iqbalancer.h"
 #include "airspyhf.h"
 #include "airspyhf_commands.h"
+#include "git_version.h"
 
 #ifndef bool
 typedef int bool;
@@ -794,6 +795,11 @@ int airspyhf_list_devices(uint64_t *serials, int count)
 	return output_count;
 }
 
+int ADDCALL airspyhf_IQpairsPerCallback()
+{
+	return SAMPLES_TO_TRANSFER;
+}
+
 static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number)
 {
 	airspyhf_device_t* lib_device;
@@ -902,6 +908,11 @@ void ADDCALL airspyhf_lib_version(airspyhf_lib_version_t* lib_version)
 	lib_version->major_version = AIRSPYHF_VER_MAJOR;
 	lib_version->minor_version = AIRSPYHF_VER_MINOR;
 	lib_version->revision = AIRSPYHF_VER_REVISION;
+}
+
+const char * ADDCALL airspyhf_lib_gitver_description()
+{
+	return git_version;
 }
 
 int ADDCALL airspyhf_open_sn(airspyhf_device_t** device, uint64_t serial_number)
