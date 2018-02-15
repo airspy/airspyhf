@@ -114,6 +114,8 @@ typedef struct {
 	uint32_t revision;
 } airspyhf_lib_version_t;
 
+#define MAX_VERSION_STRING_SIZE (64)
+
 typedef int (*airspyhf_sample_block_cb_fn) (airspyhf_transfer_t* transfer_fn);
 
 extern ADDAPI void ADDCALL airspyhf_lib_version(airspyhf_lib_version_t* lib_version);
@@ -133,6 +135,11 @@ extern ADDAPI int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_board_partid_serialno_read(airspyhf_device_t* device, airspyhf_read_partid_serialno_t* read_partid_serialno);
 extern ADDAPI int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* version, uint8_t length);
 extern ADDAPI int ADDCALL airspyhf_set_user_output(airspyhf_device_t* device, airspyhf_user_output_t pin, airspyhf_user_output_state_t value);
+extern ADDAPI int ADDCALL airspyhf_set_hf_agc(airspyhf_device_t* device, uint8_t flag);
+extern ADDAPI int ADDCALL airspyhf_set_hf_agc_threshold(airspyhf_device_t* device, uint8_t flag);
+extern ADDAPI int ADDCALL airspyhf_set_hf_att(airspyhf_device_t* device, uint8_t value);
+extern ADDAPI int ADDCALL airspyhf_set_hf_lna(airspyhf_device_t* device, uint8_t flag);
+
 #ifdef __cplusplus
 }
 #endif
