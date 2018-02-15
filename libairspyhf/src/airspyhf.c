@@ -69,8 +69,6 @@ typedef int bool;
 static const char str_prefix_serial_airspyhf[STR_PREFIX_SERIAL_AIRSPYHF_SIZE] =
 { 'A', 'I', 'R', 'S', 'P', 'Y', 'H', 'F', ' ', 'S', 'N', ':' };
 
-#define VERSION_STRING_SIZE (64)
-
 #ifdef AIRSPYHF_BIG_ENDIAN
 #define TO_LE(x) __builtin_bswap32(x)
 #else
@@ -1227,7 +1225,7 @@ int ADDCALL airspyhf_board_partid_serialno_read(airspyhf_device_t* device, airsp
 int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* version, uint8_t length)
 {
 	int result;
-	char version_local[VERSION_STRING_SIZE];
+	char version_local[MAX_VERSION_STRING_SIZE];
 
 	result = libusb_control_transfer(
 		device->usb_device,
@@ -1235,8 +1233,8 @@ int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* versio
 		AIRSPYHF_GET_VERSION_STRING,
 		0,
 		0,
-		(unsigned char*)version_local,
-		(VERSION_STRING_SIZE - 1),
+		(unsigned char*) version_local,
+		(MAX_VERSION_STRING_SIZE - 1),
 		0);
 
 	if (result < 0)
@@ -1268,6 +1266,94 @@ int ADDCALL airspyhf_set_user_output(airspyhf_device_t* device, airspyhf_user_ou
 		AIRSPYHF_SET_USER_OUTPUT,
 		(uint16_t)pin,
 		(uint16_t)value,
+		NULL,
+		0,
+		0);
+
+	if (result < 0)
+	{
+		return AIRSPYHF_ERROR;
+	}
+
+	return AIRSPYHF_SUCCESS;
+}
+
+int ADDCALL airspyhf_set_hf_agc(airspyhf_device_t* device, uint8_t flag)
+{
+	int result;
+
+	result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		AIRSPYHF_SET_HF_AGC,
+		(uint16_t) flag,
+		0,
+		NULL,
+		0,
+		0);
+
+	if (result < 0)
+	{
+		return AIRSPYHF_ERROR;
+	}
+
+	return AIRSPYHF_SUCCESS;
+}
+
+int ADDCALL airspyhf_set_hf_agc_threshold(airspyhf_device_t* device, uint8_t flag)
+{
+	int result;
+
+	result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		AIRSPYHF_SET_HF_AGC_THRESHOLD,
+		(uint16_t) flag,
+		0,
+		NULL,
+		0,
+		0);
+
+	if (result < 0)
+	{
+		return AIRSPYHF_ERROR;
+	}
+
+	return AIRSPYHF_SUCCESS;
+}
+
+int ADDCALL airspyhf_set_hf_att(airspyhf_device_t* device, uint8_t value)
+{
+	int result;
+
+	result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		AIRSPYHF_SET_HF_ATT,
+		(uint16_t) value,
+		0,
+		NULL,
+		0,
+		0);
+
+	if (result < 0)
+	{
+		return AIRSPYHF_ERROR;
+	}
+
+	return AIRSPYHF_SUCCESS;
+}
+
+int ADDCALL airspyhf_set_hf_lna(airspyhf_device_t* device, uint8_t flag)
+{
+	int result;
+
+	result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		AIRSPYHF_SET_HF_LNA,
+		(uint16_t) flag,
+		0,
 		NULL,
 		0,
 		0);
