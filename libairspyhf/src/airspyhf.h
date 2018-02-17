@@ -119,7 +119,9 @@ typedef struct {
 typedef int (*airspyhf_sample_block_cb_fn) (airspyhf_transfer_t* transfer_fn);
 
 extern ADDAPI void ADDCALL airspyhf_lib_version(airspyhf_lib_version_t* lib_version);
+extern ADDAPI const char * ADDCALL airspyhf_lib_gitver_description();
 extern ADDAPI int ADDCALL airspyhf_list_devices(uint64_t *serials, int count);
+extern ADDAPI int ADDCALL airspyhf_IQpairsPerCallback();
 extern ADDAPI int ADDCALL airspyhf_open(airspyhf_device_t** device);
 extern ADDAPI int ADDCALL airspyhf_open_sn(airspyhf_device_t** device, uint64_t serial_number);
 extern ADDAPI int ADDCALL airspyhf_close(airspyhf_device_t* device);
