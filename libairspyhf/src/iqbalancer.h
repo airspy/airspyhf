@@ -25,6 +25,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #include "airspyhf.h"
 
 #define FFTBins 512
+#define BinsToSkip 10
 #define SkippedBuffers 4
 #define MaximumFail 10
 #define MaximumStep 1e-2f
