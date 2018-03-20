@@ -1,15 +1,15 @@
 /*
-Copyright (c) 2016-2017, Youssef Touil <youssef@airspy.com>
+Copyright (c) 2016-2018, Youssef Touil <youssef@airspy.com>
 
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the
-documentation and/or other materials provided with the distribution.
-Neither the name of Airspy HF+ nor the names of its contributors may be used to endorse or promote products derived from this software
-without specific prior written permission.
+		Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+		Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the
+		documentation and/or other materials provided with the distribution.
+		Neither the name of Airspy HF+ nor the names of its contributors may be used to endorse or promote products derived from this software
+		without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
 THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -211,7 +211,6 @@ static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, f
 	{
 		airspyhf_complex_float_t prod = multiply_complex_complex(fftPtr + i, fftPtr + j);
 		float corr = prod.re * prod.re + prod.im * prod.im;
-
 		float m1 = fftPtr[i].re * fftPtr[i].re + fftPtr[i].im * fftPtr[i].im;
 		float m2 = fftPtr[j].re * fftPtr[j].re + fftPtr[j].im * fftPtr[j].im;
 

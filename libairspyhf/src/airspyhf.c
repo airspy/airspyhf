@@ -1,9 +1,9 @@
 /*
-Copyright (c) 2013, Michael Ossmann <mike@ossmann.com>
-Copyright (c) 2012, Jared Boone <jared@sharebrained.com>
-Copyright (c) 2013-2017, Youssef Touil <youssef@airspy.com>
+Copyright (c) 2013-2018, Youssef Touil <youssef@airspy.com>
 Copyright (c) 2013-2017, Ian Gilmour <ian@sdrsharp.com>
 Copyright (c) 2013-2017, Benjamin Vernoux <bvernoux@airspy.com>
+Copyright (c) 2013, Michael Ossmann <mike@ossmann.com>
+Copyright (c) 2012, Jared Boone <jared@sharebrained.com>
 
 All rights reserved.
 
