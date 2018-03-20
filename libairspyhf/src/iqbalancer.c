@@ -207,9 +207,12 @@ static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, f
 
 	for (i = 1 + BinsToSkip, j = FFTBins - 1 - BinsToSkip; i < FFTBins / 2 - BinsToSkip; i++, j--)
 	{
-		prod = fftPtr[i];
-		multiply_complex_complex(&prod, fftPtr + j);
-		acc += prod.re * prod.re + prod.im * prod.im;
+		if (iq_balancer->optimal_bin == 0 || (i >= iq_balancer->optimal_bin - BinsToOptimize / 2 && i <= iq_balancer->optimal_bin + BinsToOptimize / 2))
+		{
+			prod = fftPtr[i];
+			multiply_complex_complex(&prod, fftPtr + j);
+			acc += prod.re * prod.re + prod.im * prod.im;
+		}
 	}
 
 	return acc;
@@ -311,6 +314,20 @@ void iq_balancer_process(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* i
 	adjust_phase_amplitude(iq_balancer, iq, length);
 }
 
+void iq_balancer_set_optimal_point(iq_balancer_t *iq_balancer, float w)
+{
+	if (w < 0)
+	{
+		w = -w;
+	}
+	if (w > 0.5f)
+	{
+		w = 0.5;
+	}
+
+	iq_balancer->optimal_bin = (int) (FFTBins * w);
+}
+
 void iq_balancer_init(iq_balancer_t *iq_balancer)
 {
 	iq_balancer->iavg = 0.0f;
@@ -318,6 +335,7 @@ void iq_balancer_init(iq_balancer_t *iq_balancer)
 	iq_balancer->phase = 0.0f;
 	iq_balancer->last_phase = 0.0f;
 	iq_balancer->step = MinimumStep;
+	iq_balancer->optimal_bin = 0;
 	iq_balancer->fail = 0;
 	iq_balancer->gain = 1.0;
 	iq_balancer->iampavg = 1.0;

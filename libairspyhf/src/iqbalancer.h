@@ -26,6 +26,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #define FFTBins 512
 #define BinsToSkip 10
+#define BinsToOptimize 20
 #define SkippedBuffers 4
 #define MaximumFail 10
 #define MaximumStep 1e-2f
@@ -44,6 +45,7 @@ typedef struct _iq_balancer_t
 	float phase;
 	float last_phase;
 	float step;
+	int optimal_bin;
 	int fail;
 	double gain;
 	double iampavg;
@@ -51,6 +53,7 @@ typedef struct _iq_balancer_t
 } iq_balancer_t;
 
 void iq_balancer_init(iq_balancer_t *iq_balancer);
+void iq_balancer_set_optimal_point(iq_balancer_t *iq_balancer, float w);
 void iq_balancer_process(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, int length);
 
 #endif

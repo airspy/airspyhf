@@ -1198,6 +1198,12 @@ int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb)
 	return airspyhf_set_freq(device, device->freq_hz);
 }
 
+int ADDCALL airspyhf_set_optimal_iq_correction_point(airspyhf_device_t* device, float w)
+{
+	iq_balancer_set_optimal_point(&device->iq_balancer, w);
+	return AIRSPYHF_SUCCESS;
+}
+
 int ADDCALL airspyhf_board_partid_serialno_read(airspyhf_device_t* device, airspyhf_read_partid_serialno_t* read_partid_serialno)
 {
 	uint8_t length;
