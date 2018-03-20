@@ -27,6 +27,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #define FFTBins 512
 #define BinsToSkip 10
 #define BinsToOptimize 20
+#define BoostFactor 1000
 #define SkippedBuffers 4
 #define MaximumFail 10
 #define MaximumStep 1e-2f

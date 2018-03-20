@@ -176,11 +176,12 @@ static void adjust_phase(airspyhf_complex_float_t *iq, float phase)
 	}
 }
 
-static void multiply_complex_complex(airspyhf_complex_float_t *a, const airspyhf_complex_float_t *b)
+static airspyhf_complex_float_t multiply_complex_complex(airspyhf_complex_float_t *a, const airspyhf_complex_float_t *b)
 {
-	float re = a->re * b->re - a->im * b->im;
-	a->im = a->im * b->re + a->re * b->im;
-	a->re = re;
+	airspyhf_complex_float_t result;
+	result.re = a->re * b->re - a->im * b->im;
+	result.im = a->im * b->re + a->re * b->im;
+	return result;
 }
 
 static float fsign(const float x)
@@ -190,10 +191,6 @@ static float fsign(const float x)
 
 static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, float phase)
 {
-	int i, j;
-	float acc;
-	airspyhf_complex_float_t prod;
-
 	airspyhf_complex_float_t fftPtr[FFTBins * sizeof(airspyhf_complex_float_t)];
 
 	memcpy(fftPtr, iq, FFTBins * sizeof(airspyhf_complex_float_t));
@@ -203,19 +200,58 @@ static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, f
 	window(fftPtr, FFTBins);
 	fft(fftPtr, FFTBins);
 
-	acc = 0.0f;
+	float acc1 = 0.0f;
+	float acc2 = 0.0f;
+	float max1 = 0.0f;
+	float max2 = 0.0f;
+	int count1 = 0;
+	int count2 = 0;
 
-	for (i = 1 + BinsToSkip, j = FFTBins - 1 - BinsToSkip; i < FFTBins / 2 - BinsToSkip; i++, j--)
+	for (int i = 1 + BinsToSkip, j = FFTBins - 1 - BinsToSkip; i < FFTBins / 2 - BinsToSkip; i++, j--)
 	{
-		if (iq_balancer->optimal_bin == 0 || (i >= iq_balancer->optimal_bin - BinsToOptimize / 2 && i <= iq_balancer->optimal_bin + BinsToOptimize / 2))
+		airspyhf_complex_float_t prod = multiply_complex_complex(fftPtr + i, fftPtr + j);
+		float corr = prod.re * prod.re + prod.im * prod.im;
+
+		float m1 = fftPtr[i].re * fftPtr[i].re + fftPtr[i].im * fftPtr[i].im;
+		float m2 = fftPtr[j].re * fftPtr[j].re + fftPtr[j].im * fftPtr[j].im;
+
+		if (i >= iq_balancer->optimal_bin - BinsToOptimize / 2 && i <= iq_balancer->optimal_bin + BinsToOptimize / 2)
 		{
-			prod = fftPtr[i];
-			multiply_complex_complex(&prod, fftPtr + j);
-			acc += prod.re * prod.re + prod.im * prod.im;
+			acc1 += corr;
+			if (max1 < m1)
+			{
+				max1 = m1;
+			}
+			if (max1 < m2)
+			{
+				max1 = m2;
+			}
+			count1++;
+		}
+		else
+		{
+			acc2 += corr;
+			if (max2 < m1)
+			{
+				max2 = m1;
+			}
+			if (max2 < m2)
+			{
+				max2 = m2;
+			}
+			count2++;
 		}
 	}
 
-	return acc;
+	if (count1 == 0)
+	{
+		return acc2;
+	}
+
+	acc1 /= count1;
+	acc2 /= count2;
+
+	return acc1 * max1 * BoostFactor + acc2 * max2;
 }
 
 static void estimate_phase_imbalance(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq)
