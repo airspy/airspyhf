@@ -152,8 +152,8 @@ static void cancel_dc(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, 
 
 	for (i = 0; i < length; i++)
 	{
-		iavg += DCAlpha * (iq[i].re - iavg);
-		qavg += DCAlpha * (iq[i].im - qavg);
+		iavg += DcTimeConst * (iq[i].re - iavg);
+		qavg += DcTimeConst * (iq[i].im - qavg);
 
 		iq[i].re -= iavg;
 		iq[i].im -= qavg;
@@ -314,16 +314,27 @@ static void adjust_phase_amplitude(iq_balancer_t *iq_balancer, airspyhf_complex_
 		re = iq[i].re * iq[i].re;
 		im = iq[i].im * iq[i].im;
 
-		iq_balancer->iampavg += DCAlpha * (re - iq_balancer->iampavg);
-		iq_balancer->qampavg += DCAlpha * (im - iq_balancer->qampavg);
+		iq_balancer->iampavg += BalanceTimeConst * (re - iq_balancer->iampavg);
+		iq_balancer->qampavg_pre += BalanceTimeConst * (im - iq_balancer->qampavg_pre);
 
-		if (iq_balancer->qampavg != 0)
+		if (iq_balancer->qampavg_pre != 0)
 		{
-			double gain = sqrt(iq_balancer->iampavg / iq_balancer->qampavg);
-			iq_balancer->gain = iq_balancer->gain + GainAlpha * (gain - iq_balancer->gain);
+			double gain = sqrt(iq_balancer->iampavg / iq_balancer->qampavg_pre);
+			iq_balancer->gain = iq_balancer->gain + iq_balancer->gain_alpha * (gain - iq_balancer->gain);
 		}
 
 		iq[i].im *= (float) iq_balancer->gain;
+
+		iq_balancer->qampavg_post += BalanceTimeConst * (iq[i].im * iq[i].im - iq_balancer->qampavg_post);
+
+		if (iq_balancer->qampavg_post != 0)
+		{
+			double gain_balance = sqrt(iq_balancer->iampavg / iq_balancer->qampavg_post);
+			double alpha_contribution = AlphaContributionScale * abs(1.0 - gain_balance);
+			alpha_contribution = max(alpha_contribution, MinAlphaContribution);
+			alpha_contribution = min(alpha_contribution, MaxAlphaContribution);
+			iq_balancer->gain_alpha += BalanceTimeConst * (alpha_contribution - iq_balancer->gain_alpha);
+		}
 	}
 
 	iq_balancer->last_phase = iq_balancer->phase;
@@ -373,8 +384,10 @@ void iq_balancer_init(iq_balancer_t *iq_balancer)
 	iq_balancer->optimal_bin = 0;
 	iq_balancer->fail = 0;
 	iq_balancer->gain = 1.0;
-	iq_balancer->iampavg = 1.0;
-	iq_balancer->qampavg = 1.0;
+	iq_balancer->gain_alpha = InitialGainAlpha;
+	iq_balancer->iampavg = 0.0;
+	iq_balancer->qampavg_pre = 0.0;
+	iq_balancer->qampavg_post = 0.0;
 
 	__init_window();
 }

@@ -27,8 +27,13 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #define FFTBins 512
 #define BinsToSkip 10
 #define BinsToOptimize 20
-#define BoostFactor 1000
+#define BoostFactor 10000
 #define SkippedBuffers 4
+#define DcTimeConst 1e-5f
+#define BalanceTimeConst 2.5e-6f
+#define AlphaContributionScale 0.01f
+#define MinAlphaContribution 1e-8f
+#define MaxAlphaContribution 1e-3f
 #define MaximumFail 10
 #define MaximumStep 1e-2f
 #define MinimumStep 1e-7f
@@ -36,8 +41,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #define StepDecrement 0.9f
 #define MaxPhaseCorrection 0.2f
 #define PhaseAlpha 0.01f
-#define GainAlpha 0.01f
-#define DCAlpha 2.68744225e-5f
+#define InitialGainAlpha 0.01f
 
 typedef struct _iq_balancer_t
 {
@@ -49,8 +53,10 @@ typedef struct _iq_balancer_t
 	int optimal_bin;
 	int fail;
 	double gain;
+	double gain_alpha;
 	double iampavg;
-	double qampavg;
+	double qampavg_pre;
+	double qampavg_post;
 } iq_balancer_t;
 
 void iq_balancer_init(iq_balancer_t *iq_balancer);
