@@ -262,7 +262,7 @@ static void estimate_phase_imbalance(iq_balancer_t *iq_balancer, airspyhf_comple
 	{
 		phase = MaxPhaseCorrection;
 	}
-	if (phase < -MaxPhaseCorrection)
+	else if (phase < -MaxPhaseCorrection)
 	{
 		phase = -MaxPhaseCorrection;
 	}
@@ -330,9 +330,11 @@ static void adjust_phase_amplitude(iq_balancer_t *iq_balancer, airspyhf_complex_
 		if (iq_balancer->qampavg_post != 0)
 		{
 			double gain_balance = sqrt(iq_balancer->iampavg / iq_balancer->qampavg_post);
-			double alpha_contribution = AlphaContributionScale * abs(1.0 - gain_balance);
-			alpha_contribution = max(alpha_contribution, MinAlphaContribution);
-			alpha_contribution = min(alpha_contribution, MaxAlphaContribution);
+			double alpha_contribution = AlphaContributionScale * fabs(1.0 - gain_balance);
+			if (alpha_contribution < MinAlphaContribution)
+				alpha_contribution = MinAlphaContribution;
+			else if (alpha_contribution > MaxAlphaContribution)
+				alpha_contribution = MaxAlphaContribution;
 			iq_balancer->gain_alpha += BalanceTimeConst * (alpha_contribution - iq_balancer->gain_alpha);
 		}
 	}
