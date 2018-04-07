@@ -1,0 +1,51 @@
+#
+# airspyhf_rx can be conveniently tested on Linux using the csdr
+# package found in
+#
+# https://github.com/simonyiszk/csdr
+#
+# csdr is a small but clever SDR package build following one of classical
+# Unix paradigm: the filter
+# All the csdr modules are Unix filters in the sense that get their
+# input from standard input and send processed data to standard output.
+# All the pieces are kept together using the pipe shell operator.
+#
+
+# frequency in MHz
+FREQ=107.9
+#
+# Baseband I/Q signal is coming from an AirSpyHF receiver, with a center
+# frequency of -f 107.9 MHz a sampling rate of 768000 samples per second.
+#
+# The airspyhf_rx spits out IQ in 32 bit floating point format
+# No other radio station is within the sampled bandwidth, so we send
+# the signal directly to the demodulator.
+# After FM demodulation we decimate the signal by a factor of 5 to
+# match the rate of the audio card (768000 / 16 = 48000).
+# A de-emphasis filter is used, because pre-emphasis is applied at
+# the transmitter to compensate noise at higher frequencies.
+# The time constant for de-emphasis for FM broadcasting in Europe
+# is 50 microseconds (hence the 50e-6).
+# Also, mplayer cannot play floating point audio, so we convert our
+# signal to a stream of 16-bit integers.
+#
+
+tools/src/airspyhf_rx  -r stdout -f $FREQ | \
+csdr fmdemod_quadri_cf | \
+csdr fractional_decimator_ff 16 | \
+csdr deemphasis_wfm_ff 48000 50e-6 | \
+csdr convert_f_s16 | \
+mplayer -cache 1024 -quiet -rawaudio samplesize=2:channels=1:rate=48000 -demuxer rawaudio -
+
+
+#
+#
+#
+FREQ=107.9
+tools/src/airspyhf_rx -d -r stdout -f $FREQ | \
+csdr fir_decimate_cc 2 0.25 HAMMING | \
+csdr fmdemod_quadri_cf | \
+csdr fractional_decimator_ff 8 | \
+csdr deemphasis_wfm_ff 48000 50e-6 | \
+csdr convert_f_s16 | \
+mplayer -cache 1024 -quiet -rawaudio samplesize=2:channels=1:rate=48000 -demuxer rawaudio -
