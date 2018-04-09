@@ -380,6 +380,9 @@ static void usage(void)
 	"\t-t <value>\t\tHF attenuator value 0..8 (each step increases 6 dB the attenuation)\n"
 	"\t-m on|off\t\ton to activate LNA (preamplifier): +6 dB gain - compensated in digital.\n"
 
+	"\t-z\t\t\tDo not attempt to use manual AGC/LNA commands\n"
+	"\t\t\t\t(useful in order to avoid errors with old firmware)\n"
+
 	);
 }
 
@@ -433,7 +436,9 @@ int main(int argc, char** argv)
 	unsigned hf_att_val = 0;
 	bool hf_lna = false; // false = off, true = on
 
-	while( (opt = getopt(argc, argv, "r:ws:f:a::n:g:l:t:m:dh")) != EOF )
+	bool do_not_use_manual_commands = false;
+
+	while( (opt = getopt(argc, argv, "r:ws:f:a::n:g:l:t:m:dhz")) != EOF )
 	{
 		result = AIRSPYHF_SUCCESS;
 		switch( opt )
@@ -477,22 +482,22 @@ int main(int argc, char** argv)
 			break;
 
 			case 'l':
-			fprintf (stderr, "************** [%s]\n", optarg);
-			if (strcmp(optarg, "high") == 0) hf_agc_threshold = true;
+				fprintf (stderr, "************** [%s]\n", optarg);
+				if (strcmp(optarg, "high") == 0) hf_agc_threshold = true;
 			break;
 
 			case 't':
-			if (sscanf(optarg, "%d", &hf_att_val) == 1) {
-				if (!(hf_att_val >=0 && hf_att_val<= 8)) {
-					hf_att_val = 0;
-					fprintf (stderr, "Bad HF attenuator value.\n");
-					goto exit_usage;
+				if (sscanf(optarg, "%d", &hf_att_val) == 1) {
+					if (!(hf_att_val >=0 && hf_att_val<= 8)) {
+						hf_att_val = 0;
+						fprintf (stderr, "Bad HF attenuator value.\n");
+						goto exit_usage;
+					}
 				}
-			}
 			break;
 
 			case 'm':
-			if (strcmp(optarg, "on") == 0) hf_lna = true;
+				if (strcmp(optarg, "on") == 0) hf_lna = true;
 			break;
 
 			case 'd':
@@ -501,6 +506,10 @@ int main(int argc, char** argv)
 
 			case 'h':
 				goto exit_usage;
+
+			case 'z':
+				do_not_use_manual_commands = true;
+			break;
 
 			default:
 				fprintf(stderr, "unknown argument '-%c %s'\n", opt, optarg);
@@ -642,44 +651,45 @@ int main(int argc, char** argv)
 	}
 
 	// manual commands
-
-	/* 0 = off, 1 = on */
-	if (airspyhf_set_hf_agc(device, (hf_agc == true) ? 1:0)  == AIRSPYHF_SUCCESS) {
-		fprintf (stderr, "HF AGC %s\n", (hf_agc == true) ? "ON":"OFF");
-	} else {
-		fprintf(stderr, "airspyhf_set_hf_agc failed.\n");
-		goto exit_failure;
-	}
-
-	if (hf_agc == true) {
-		/* when agc on: 0 = low, 1 = high */
-		if (airspyhf_set_hf_agc_threshold (device, hf_agc_threshold == true?1:0) == AIRSPYHF_SUCCESS) {
-			fprintf (stderr, "HF AGC threshold %s\n", (hf_agc_threshold == true) ? "High":"Low");
+	if (do_not_use_manual_commands == false) {
+		/* 0 = off, 1 = on */
+		if (airspyhf_set_hf_agc(device, (hf_agc == true) ? 1:0)  == AIRSPYHF_SUCCESS) {
+			fprintf (stderr, "HF AGC %s\n", (hf_agc == true) ? "ON":"OFF");
 		} else {
-			fprintf(stderr, "airspyhf_set_agc_threshold() failed.\n");
+			fprintf(stderr, "airspyhf_set_hf_agc failed.\n");
 			goto exit_failure;
 		}
-	} else {
-		fprintf (stderr, "HF AGC threshold ignored as AGC is disabled.\n");
-	}
 
-	if (hf_agc == false) {
-		/* when agc off: 0 .. 8 with attenuation = (value * 8) dB */
-		if (airspyhf_set_hf_att(device, hf_att_val) == AIRSPYHF_SUCCESS) {
-			fprintf (stderr, "HF Attenuator value: -%d dB\n", hf_att_val*6);
+		if (hf_agc == true) {
+			/* when agc on: 0 = low, 1 = high */
+			if (airspyhf_set_hf_agc_threshold (device, hf_agc_threshold == true?1:0) == AIRSPYHF_SUCCESS) {
+				fprintf (stderr, "HF AGC threshold %s\n", (hf_agc_threshold == true) ? "High":"Low");
+			} else {
+				fprintf(stderr, "airspyhf_set_agc_threshold() failed.\n");
+				goto exit_failure;
+			}
 		} else {
-			fprintf(stderr, "airspyhf_set_hf_att() failed: offending value: %d\n", hf_att_val);
+			fprintf (stderr, "HF AGC threshold ignored as AGC is disabled.\n");
+		}
+
+		if (hf_agc == false) {
+			/* when agc off: 0 .. 8 with attenuation = (value * 8) dB */
+			if (airspyhf_set_hf_att(device, hf_att_val) == AIRSPYHF_SUCCESS) {
+				fprintf (stderr, "HF Attenuator value: -%d dB\n", hf_att_val*6);
+			} else {
+				fprintf(stderr, "airspyhf_set_hf_att() failed: offending value: %d\n", hf_att_val);
+				goto exit_failure;
+			}
+		} else {
+			fprintf (stderr, "HF attenuator value ignored as AGC is enabled.\n");
+		}
+		/* 0 or 1: 1 to activate LNA (alias PreAmp): 1 = +6 dB gain - compensated in digital */
+		if (airspyhf_set_hf_lna(device, hf_lna == false?0:1) == AIRSPYHF_SUCCESS) {
+			fprintf (stderr, "HF LNA %s\n", (hf_lna == true) ? "ON":"OFF");
+		} else {
+			fprintf(stderr, "airspyhf_set_hf_lna() failed.\n");
 			goto exit_failure;
 		}
-	} else {
-		fprintf (stderr, "HF attenuator value ignored as AGC is enabled.\n");
-	}
-	/* 0 or 1: 1 to activate LNA (alias PreAmp): 1 = +6 dB gain - compensated in digital */
-	if (airspyhf_set_hf_lna(device, hf_lna == false?0:1) == AIRSPYHF_SUCCESS) {
-		fprintf (stderr, "HF LNA %s\n", (hf_lna == true) ? "ON":"OFF");
-	} else {
-		fprintf(stderr, "airspyhf_set_hf_lna() failed.\n");
-		goto exit_failure;
 	}
 
 	// output file management
