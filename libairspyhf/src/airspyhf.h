@@ -127,7 +127,7 @@ extern ADDAPI int ADDCALL airspyhf_start(airspyhf_device_t* device, airspyhf_sam
 extern ADDAPI int ADDCALL airspyhf_stop(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_is_streaming(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz);
-extern ADDAPI int ADDCALL airspyhf_set_lib_dsp(airspyhf_device_t* device, const uint8_t flag);
+extern ADDAPI int ADDCALL airspyhf_set_lib_dsp(airspyhf_device_t* device, const uint8_t flag); /* Enables/Disables the IQ Correction, IF shift and Fine Tuning. */
 extern ADDAPI int ADDCALL airspyhf_get_samplerates(airspyhf_device_t* device, uint32_t* buffer, const uint32_t len);
 extern ADDAPI int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplerate);
 extern ADDAPI int ADDCALL airspyhf_get_calibration(airspyhf_device_t* device, int32_t* ppb);
@@ -139,7 +139,7 @@ extern ADDAPI int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device
 extern ADDAPI int ADDCALL airspyhf_set_user_output(airspyhf_device_t* device, airspyhf_user_output_t pin, airspyhf_user_output_state_t value);
 extern ADDAPI int ADDCALL airspyhf_set_hf_agc(airspyhf_device_t* device, uint8_t flag);
 extern ADDAPI int ADDCALL airspyhf_set_hf_agc_threshold(airspyhf_device_t* device, uint8_t flag);
-extern ADDAPI int ADDCALL airspyhf_set_hf_att(airspyhf_device_t* device, uint8_t value);
+extern ADDAPI int ADDCALL airspyhf_set_hf_att(airspyhf_device_t* device, uint8_t value); /* Possible values: 0..8 Range: 0..48 dB Attenuation with 6 dB steps */
 extern ADDAPI int ADDCALL airspyhf_set_hf_lna(airspyhf_device_t* device, uint8_t flag);
 
 #ifdef __cplusplus
