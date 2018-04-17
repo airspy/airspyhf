@@ -1381,4 +1381,4 @@ int ADDCALL airspyhf_set_lib_dsp(airspyhf_device_t* device, const uint8_t flag)
 	return AIRSPYHF_SUCCESS;
 }
 
-#include "special.c"
+//#include "special.c"
