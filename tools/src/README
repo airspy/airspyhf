@@ -49,3 +49,17 @@ csdr fractional_decimator_ff 8 | \
 csdr deemphasis_wfm_ff 48000 50e-6 | \
 csdr convert_f_s16 | \
 mplayer -cache 1024 -quiet -rawaudio samplesize=2:channels=1:rate=48000 -demuxer rawaudio -
+
+#
+# how to display the spectrum
+#
+# frequency in MHz
+FREQ=107.9
+airspyhf_rx -d -r stdout -f $FREQ -m on | csdr fft_cc 1024 120000 HAMMING --octave | octave -i > /dev/null
+
+#
+# how to display a graph of raw I/Q samples
+#
+# frequency in MHz
+FREQ=107.9
+airspyhf_rx -d -r stdout -f $FREQ -m on | csdr octave_complex_c 1024 120000 --2d | octave -i > /dev/null
