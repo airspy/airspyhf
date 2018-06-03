@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
-#include <libairspyhf/airspyhf.h>
+#include <airspyhf.h>
 
 static void usage(void)
 {

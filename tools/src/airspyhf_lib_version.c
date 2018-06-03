@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <libairspyhf/airspyhf.h>
+#include <airspyhf.h>
 
 int main()
 {

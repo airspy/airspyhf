@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
-#include <libairspyhf/airspyhf.h>
+#include <airspyhf.h>
 
 /*
  * print all the receiver data available from libairspyhf
