@@ -204,19 +204,21 @@ static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, f
 	float acc2 = 0.0f;
 	float max1 = 0.0f;
 	float max2 = 0.0f;
+	float invskip = 1.0f / BinsToSkip;
 	int count1 = 0;
 	int count2 = 0;
 
-	for (int i = 1 + BinsToSkip, j = FFTBins - 1 - BinsToSkip; i < FFTBins / 2 - BinsToSkip; i++, j--)
+	for (int i = 1, j = FFTBins - 1; i < FFTBins / 2 - BinsToSkip; i++, j--)
 	{
 		airspyhf_complex_float_t prod = multiply_complex_complex(fftPtr + i, fftPtr + j);
 		float corr = prod.re * prod.re + prod.im * prod.im;
 		float m1 = fftPtr[i].re * fftPtr[i].re + fftPtr[i].im * fftPtr[i].im;
 		float m2 = fftPtr[j].re * fftPtr[j].re + fftPtr[j].im * fftPtr[j].im;
+		float weight = (i > BinsToSkip) ? 1.0f : (i * invskip);
 
 		if (i >= iq_balancer->optimal_bin - BinsToOptimize / 2 && i <= iq_balancer->optimal_bin + BinsToOptimize / 2)
 		{
-			acc1 += corr;
+			acc1 += corr * weight;
 			if (max1 < m1)
 			{
 				max1 = m1;
@@ -229,7 +231,7 @@ static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, f
 		}
 		else
 		{
-			acc2 += corr;
+			acc2 += corr * weight;
 			if (max2 < m1)
 			{
 				max2 = m1;
