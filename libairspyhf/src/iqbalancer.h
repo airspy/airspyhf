@@ -31,6 +31,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #define SkippedBuffers 4
 #define DcTimeConst 1e-5f
 #define BalanceTimeConst 2.5e-6f
+#define BalanceAttackTimeConst 1e-6f
+#define BalanceDecayTimeConst 1e-8f
 #define AlphaContributionScale 0.01f
 #define MinAlphaContribution 1e-8f
 #define MaxAlphaContribution 1e-3f

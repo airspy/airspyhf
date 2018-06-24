@@ -316,8 +316,11 @@ static void adjust_phase_amplitude(iq_balancer_t *iq_balancer, airspyhf_complex_
 		re = iq[i].re * iq[i].re;
 		im = iq[i].im * iq[i].im;
 
-		iq_balancer->iampavg += BalanceTimeConst * (re - iq_balancer->iampavg);
-		iq_balancer->qampavg_pre += BalanceTimeConst * (im - iq_balancer->qampavg_pre);
+		double idelta = iq[i].re * iq[i].re - iq_balancer->iampavg;
+		iq_balancer->iampavg += (idelta > 0.0 ? BalanceAttackTimeConst : BalanceDecayTimeConst) * idelta;
+
+		double qdelta = iq[i].im * iq[i].im - iq_balancer->qampavg_pre;
+		iq_balancer->qampavg_pre += (qdelta > 0.0 ? BalanceAttackTimeConst : BalanceDecayTimeConst) * qdelta;
 
 		if (iq_balancer->qampavg_pre != 0)
 		{
