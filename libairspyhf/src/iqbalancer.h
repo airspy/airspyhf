@@ -25,40 +25,34 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #include "airspyhf.h"
 
 #define FFTBins 512
-#define BinsToSkip 10
-#define BinsToOptimize 20
-#define BoostFactor 10000
+#define BinsToSkip 30
+#define BinsToOptimize 50
+#define BoostFactor 1000
 #define SkippedBuffers 4
-#define DcTimeConst 1e-5f
-#define BalanceTimeConst 2.5e-6f
-#define BalanceAttackTimeConst 1e-6f
-#define BalanceDecayTimeConst 1e-8f
-#define AlphaContributionScale 0.01f
-#define MinAlphaContribution 1e-8f
-#define MaxAlphaContribution 1e-3f
-#define MaximumFail 10
-#define MaximumStep 1e-2f
-#define MinimumStep 1e-7f
-#define StepIncrement 1.1f
-#define StepDecrement 0.9f
+#define MaximumPhaseStep 1e-4f
+#define MinimumPhaseStep 1e-7f
+#define MaximumAmplitudeStep 1e-3f
+#define MinimumAmplitudeStep 1e-6f
+#define StepIncrement 1.01f
+#define StepDecrement (1.0f / StepIncrement)
 #define MaxPhaseCorrection 0.2f
-#define PhaseAlpha 0.01f
-#define InitialGainAlpha 0.01f
+#define MaxAmplitudeCorrection 0.3f
+#define DcTimeConst 5e-5f
 
 typedef struct _iq_balancer_t
 {
-	float iavg;
-	float qavg;
 	float phase;
 	float last_phase;
-	float step;
+	float phase_step;
+
+	float amplitude;
+	float last_amplitude;
+	float amplitude_step;
+
+	float iavg;
+	float qavg;
+
 	int optimal_bin;
-	int fail;
-	double gain;
-	double gain_alpha;
-	double iampavg;
-	double qampavg_pre;
-	double qampavg_post;
 } iq_balancer_t;
 
 void iq_balancer_init(iq_balancer_t *iq_balancer);
