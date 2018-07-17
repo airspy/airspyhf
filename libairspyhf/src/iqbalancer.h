@@ -24,19 +24,22 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #include "airspyhf.h"
 
-#define FFTBins 512
+#define FFTBins (8 * 1024)
+#define FFTIntegration 2
 #define BinsToSkip 30
-#define BinsToOptimize 50
-#define BoostFactor 1000
-#define SkippedBuffers 4
+#define BinsToOptimize 20
+#define BoostFactor 10000.0f
+#define MaxTries 5
 #define MaximumPhaseStep 1e-4f
 #define MinimumPhaseStep 1e-7f
 #define MaximumAmplitudeStep 1e-3f
 #define MinimumAmplitudeStep 1e-6f
-#define StepIncrement 1.01f
+#define StepIncrement 2.0f
 #define StepDecrement (1.0f / StepIncrement)
 #define MaxPhaseCorrection 0.2f
 #define MaxAmplitudeCorrection 0.3f
+#define PhaseAlpha 0.025f
+#define AmplitudeAlpha 0.025f
 #define DcTimeConst 5e-5f
 
 typedef struct _iq_balancer_t
@@ -44,10 +47,12 @@ typedef struct _iq_balancer_t
 	float phase;
 	float last_phase;
 	float phase_step;
+	uint8_t phase_failed;
 
 	float amplitude;
 	float last_amplitude;
 	float amplitude_step;
+	uint8_t amplitude_failed;
 
 	float iavg;
 	float qavg;

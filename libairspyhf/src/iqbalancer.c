@@ -192,57 +192,46 @@ static float fsign(const float x)
 	return x >= 0 ? 1.0f : -1.0f;
 }
 
-static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, float phase, float amplitude)
+static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, int length, float phase, float amplitude)
 {
-	airspyhf_complex_float_t fftPtr[FFTBins * sizeof(airspyhf_complex_float_t)];
+	airspyhf_complex_float_t fftPtr[FFTBins];
+	float corr[FFTBins / 2];
 
-	memcpy(fftPtr, iq, FFTBins * sizeof(airspyhf_complex_float_t));
+	memset(corr, 0, FFTBins / 2 * sizeof(float));
 
-	adjust_benchmark(fftPtr, phase, amplitude);
+	for (int n = 0, m = 0; n < length - FFTBins && m < FFTIntegration; n += FFTBins, m++)
+	{
+		memcpy(fftPtr, iq + n, FFTBins * sizeof(airspyhf_complex_float_t));
 
-	window(fftPtr, FFTBins);
-	fft(fftPtr, FFTBins);
+		adjust_benchmark(fftPtr, phase, amplitude);
+		window(fftPtr, FFTBins);
+		fft(fftPtr, FFTBins);
+
+		for (int i = 1, j = FFTBins - 1; i < FFTBins / 2 - BinsToSkip; i++, j--)
+		{
+			airspyhf_complex_float_t prod = multiply_complex_complex(fftPtr + i, fftPtr + j);
+			corr[i] += prod.re * prod.re + prod.im * prod.im;
+		}
+	}
 
 	float acc1 = 0.0f;
 	float acc2 = 0.0f;
-	float max1 = 0.0f;
-	float max2 = 0.0f;
 	float invskip = 1.0f / BinsToSkip;
 	int count1 = 0;
 	int count2 = 0;
 
 	for (int i = 1, j = FFTBins - 1; i < FFTBins / 2 - BinsToSkip; i++, j--)
 	{
-		airspyhf_complex_float_t prod = multiply_complex_complex(fftPtr + i, fftPtr + j);
-		float corr = prod.re * prod.re + prod.im * prod.im;
-		float m1 = fftPtr[i].re * fftPtr[i].re + fftPtr[i].im * fftPtr[i].im;
-		float m2 = fftPtr[j].re * fftPtr[j].re + fftPtr[j].im * fftPtr[j].im;
 		float weight = (i > BinsToSkip) ? 1.0f : (i * invskip);
 
 		if (i >= iq_balancer->optimal_bin - BinsToOptimize / 2 && i <= iq_balancer->optimal_bin + BinsToOptimize / 2)
 		{
-			acc1 += corr * weight;
-			if (max1 < m1)
-			{
-				max1 = m1;
-			}
-			if (max1 < m2)
-			{
-				max1 = m2;
-			}
+			acc1 += corr[i] * weight;
 			count1++;
 		}
 		else
 		{
-			acc2 += corr * weight;
-			if (max2 < m1)
-			{
-				max2 = m1;
-			}
-			if (max2 < m2)
-			{
-				max2 = m2;
-			}
+			acc2 += corr[i] * weight;
 			count2++;
 		}
 	}
@@ -255,15 +244,16 @@ static float utility(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, f
 	acc1 /= count1;
 	acc2 /= count2;
 
-	return acc1 * max1 * BoostFactor + acc2 * max2;
+	return acc1 * BoostFactor + acc2;
 }
 
-static void estimate_imbalance(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq)
+static int estimate_imbalance(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, int length)
 {
+	int result = 0;
 	float old_phase = iq_balancer->phase;
 	float old_amplitude = iq_balancer->amplitude;
 
-	float u = utility(iq_balancer, iq, old_phase, old_amplitude);
+	float u = utility(iq_balancer, iq, length, old_phase, old_amplitude);
 
 	float phase = iq_balancer->phase + iq_balancer->phase_step;
 	if (phase > MaxPhaseCorrection)
@@ -275,20 +265,36 @@ static void estimate_imbalance(iq_balancer_t *iq_balancer, airspyhf_complex_floa
 		phase = -MaxPhaseCorrection;
 	}
 
-	float candidate_utility = utility(iq_balancer, iq, phase, old_amplitude);
+	float candidate_utility = utility(iq_balancer, iq, length, phase, old_amplitude);
 
 	if (candidate_utility < u)
 	{
-		iq_balancer->phase = phase;
-		iq_balancer->phase_step *= StepIncrement;
-		if (fabsf(iq_balancer->phase_step) > MaximumPhaseStep)
+		iq_balancer->phase += PhaseAlpha * (phase - iq_balancer->phase);
+
+		if (!iq_balancer->phase_failed)
 		{
-			iq_balancer->phase_step = MaximumPhaseStep * fsign(iq_balancer->phase_step);
+			iq_balancer->phase_step *= StepIncrement;
+			if (fabsf(iq_balancer->phase_step) > MaximumPhaseStep)
+			{
+				iq_balancer->phase_step = MaximumPhaseStep * fsign(iq_balancer->phase_step);
+			}
 		}
+		iq_balancer->phase_failed = 0;
+		result = 1;
 	}
 	else
 	{
-		iq_balancer->phase_step *= -StepDecrement;
+		if (iq_balancer->phase_failed)
+		{
+			iq_balancer->phase_step *= -StepDecrement;
+			iq_balancer->phase_failed = 0;
+		}
+		else
+		{
+			iq_balancer->phase_failed = 1;
+		}
+
+		iq_balancer->phase_step *= StepDecrement;
 		if (fabsf(iq_balancer->phase_step) < MinimumPhaseStep)
 		{
 			iq_balancer->phase_step = MinimumPhaseStep * fsign(iq_balancer->phase_step);
@@ -305,25 +311,43 @@ static void estimate_imbalance(iq_balancer_t *iq_balancer, airspyhf_complex_floa
 		amplitude = -MaxAmplitudeCorrection;
 	}
 
-	candidate_utility = utility(iq_balancer, iq, old_phase, amplitude);
+	candidate_utility = utility(iq_balancer, iq, length, old_phase, amplitude);
 
 	if (candidate_utility < u)
 	{
-		iq_balancer->amplitude = amplitude;
-		iq_balancer->amplitude_step *= StepIncrement;
-		if (fabsf(iq_balancer->amplitude_step) > MaximumAmplitudeStep)
+		iq_balancer->amplitude += AmplitudeAlpha * (amplitude - iq_balancer->amplitude);
+
+		if (!iq_balancer->amplitude_failed)
 		{
-			iq_balancer->amplitude_step = MaximumAmplitudeStep * fsign(iq_balancer->amplitude_step);
+			iq_balancer->amplitude_step *= StepIncrement;
+			if (fabsf(iq_balancer->amplitude_step) > MaximumAmplitudeStep)
+			{
+				iq_balancer->amplitude_step = MaximumAmplitudeStep * fsign(iq_balancer->amplitude_step);
+			}
 		}
+		iq_balancer->amplitude_failed = 0;
+		result = 1;
 	}
 	else
 	{
-		iq_balancer->amplitude_step *= -StepDecrement;
+		if (iq_balancer->amplitude_failed)
+		{
+			iq_balancer->amplitude_step *= -StepDecrement;
+			iq_balancer->amplitude_failed = 0;
+		}
+		else
+		{
+			iq_balancer->amplitude_failed = 1;
+		}
+
+		iq_balancer->amplitude_step *= StepDecrement;
 		if (fabsf(iq_balancer->amplitude_step) < MinimumAmplitudeStep)
 		{
 			iq_balancer->amplitude_step = MinimumAmplitudeStep * fsign(iq_balancer->amplitude_step);
 		}
 	}
+
+	return result;
 }
 
 static void adjust_phase_amplitude(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, int length)
@@ -354,17 +378,10 @@ void iq_balancer_process(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* i
 {
 	cancel_dc(iq_balancer, iq, length);
 
-	uint8_t i = 0;
-	while (length >= FFTBins)
+	int n = 0;
+	while (estimate_imbalance(iq_balancer, iq, length) && n < MaxTries)
 	{
-		if (++i == SkippedBuffers)
-		{
-			estimate_imbalance(iq_balancer, iq);
-			i = 0;
-		}
-		adjust_phase_amplitude(iq_balancer, iq, FFTBins);
-		iq += FFTBins;
-		length -= FFTBins;
+		n++;
 	}
 
 	adjust_phase_amplitude(iq_balancer, iq, length);
@@ -391,9 +408,11 @@ void iq_balancer_init(iq_balancer_t *iq_balancer)
 	iq_balancer->phase = 0.0f;
 	iq_balancer->last_phase = 0.0f;
 	iq_balancer->phase_step = MinimumPhaseStep;
+	iq_balancer->phase_failed = 0;
 	iq_balancer->amplitude = 0.0f;
 	iq_balancer->last_amplitude = 0.0f;
 	iq_balancer->amplitude_step = MinimumAmplitudeStep;
+	iq_balancer->amplitude_failed = 0;
 	iq_balancer->optimal_bin = 0;
 
 	__init_window();
