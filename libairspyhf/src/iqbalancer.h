@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2016-2018, Youssef Touil <youssef@airspy.com>
+Copyright (c) 2018, Leif Asbrink <leif@sm5bsz.com>
 
 All rights reserved.
 
@@ -24,44 +25,37 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #include "airspyhf.h"
 
-#define FFTBins (8 * 1024)
-#define FFTIntegration 2
-#define BinsToSkip 30
-#define BinsToOptimize 20
-#define BoostFactor 10000.0f
-#define MaxTries 5
-#define MaximumPhaseStep 1e-4f
-#define MinimumPhaseStep 1e-7f
-#define MaximumAmplitudeStep 1e-3f
-#define MinimumAmplitudeStep 1e-6f
+#define FFTBins (4 * 1024)
+#define BoostFactor 10000.0
+#define BinsToSkip (FFTBins/22)
+#define BinsToOptimize (FFTBins/50)
+#define MaxLookback 8
+#define MaxPhaseStep 1e-3f
+#define MinPhaseStep 1e-8f
+#define InitialPhaseStep MaxPhaseStep
+#define MaxAmplitudeStep 1e-2f
+#define MinAmplitudeStep 1e-7f
+#define InitialAmplitudeStep MaxAmplitudeStep
 #define StepIncrement 2.0f
-#define StepDecrement (1.0f / StepIncrement)
-#define MaxPhaseCorrection 0.2f
-#define MaxAmplitudeCorrection 0.3f
-#define PhaseAlpha 0.025f
-#define AmplitudeAlpha 0.025f
 #define DcTimeConst 5e-5f
 
-typedef struct _iq_balancer_t
-{
-	float phase;
-	float last_phase;
-	float phase_step;
-	uint8_t phase_failed;
+#if defined(__arm__) && !defined(__force_hiq__)
+#define BuffersToSkip 4
+#define FFTIntegration 2
+#define CorrelationIntegration 4
+#else
+#define BuffersToSkip 1
+#define FFTIntegration 4
+#define CorrelationIntegration 8
+#endif
 
-	float amplitude;
-	float last_amplitude;
-	float amplitude_step;
-	uint8_t amplitude_failed;
+struct iq_balancer_t;
 
-	float iavg;
-	float qavg;
+typedef airspyhf_complex_float_t complex_t;
 
-	int optimal_bin;
-} iq_balancer_t;
-
-void iq_balancer_init(iq_balancer_t *iq_balancer);
-void iq_balancer_set_optimal_point(iq_balancer_t *iq_balancer, float w);
-void iq_balancer_process(iq_balancer_t *iq_balancer, airspyhf_complex_float_t* iq, int length);
+ADDAPI struct iq_balancer_t * ADDCALL iq_balancer_create();
+ADDAPI void ADDCALL iq_balancer_set_optimal_point(struct iq_balancer_t *iq_balancer, float w);
+ADDAPI void ADDCALL iq_balancer_process(struct iq_balancer_t *iq_balancer, complex_t* iq, int length);
+ADDAPI void ADDCALL iq_balancer_destroy(struct iq_balancer_t *iq_balancer);
 
 #endif

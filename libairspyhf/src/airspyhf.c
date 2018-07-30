@@ -83,7 +83,7 @@ typedef struct {
 
 #pragma pack(pop)
 
-struct airspyhf_device
+typedef struct airspyhf_device
 {
 	libusb_context* usb_context;
 	libusb_device_handle* usb_device;
@@ -102,7 +102,7 @@ struct airspyhf_device
 	volatile int32_t calibration_ppb;
 	uint8_t enable_dsp;
 	airspyhf_complex_float_t vec;
-	iq_balancer_t iq_balancer;
+	struct iq_balancer_t *iq_balancer;
 	uint32_t transfer_count;
 	uint32_t buffer_size;
 	uint32_t dropped_buffers;
@@ -115,7 +115,7 @@ struct airspyhf_device
 	volatile int received_buffer_count;
 	airspyhf_complex_float_t *output_buffer;
 	void* ctx;
-};
+} airspyhf_device_t;
 
 typedef struct calibration_record
 {
@@ -307,7 +307,7 @@ static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t 
 
 	if (device->enable_dsp)
 	{
-		iq_balancer_process(&device->iq_balancer, dest, count);
+		iq_balancer_process(device->iq_balancer, dest, count);
 
 		for (i = 0; i < count; i++)
 		{
@@ -894,7 +894,7 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 		lib_device->calibration_ppb = 0;
 	}
 
-	iq_balancer_init(&lib_device->iq_balancer);
+	lib_device->iq_balancer = iq_balancer_create();
 
 	*device = lib_device;
 
@@ -940,6 +940,7 @@ int ADDCALL airspyhf_close(airspyhf_device_t* device)
 		airspyhf_open_exit(device);
 		free_transfers(device);
 		free(device->supported_samplerates);
+		iq_balancer_destroy(device->iq_balancer);
 		free(device);
 	}
 
@@ -1039,7 +1040,6 @@ int ADDCALL airspyhf_start(airspyhf_device_t* device, airspyhf_sample_block_cb_f
 
 	device->vec.re = 1.0f;
 	device->vec.im = 0.0f;
-	iq_balancer_init(&device->iq_balancer);
 
 	result = airspyhf_set_receiver_mode(device, RECEIVER_MODE_OFF);
 	if (result != AIRSPYHF_SUCCESS)
@@ -1069,6 +1069,7 @@ int ADDCALL airspyhf_stop(airspyhf_device_t* device)
 	int result1, result2;
 	result1 = kill_io_threads(device);
 	result2 = airspyhf_set_receiver_mode(device, RECEIVER_MODE_OFF);
+
 	if (result2 != AIRSPYHF_SUCCESS)
 	{
 		return result2;
@@ -1203,7 +1204,7 @@ int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb)
 
 int ADDCALL airspyhf_set_optimal_iq_correction_point(airspyhf_device_t* device, float w)
 {
-	iq_balancer_set_optimal_point(&device->iq_balancer, w);
+	iq_balancer_set_optimal_point(device->iq_balancer, w);
 	return AIRSPYHF_SUCCESS;
 }
 
