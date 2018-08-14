@@ -26,34 +26,34 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #include "airspyhf.h"
 
 #define FFTBins (4 * 1024)
-#define BoostFactor 10000.0
-#define BinsToSkip (FFTBins/22)
-#define BinsToOptimize (FFTBins/50)
-#define MaxLookback 8
-#define MaxPhaseStep 1e-3f
-#define MinPhaseStep 1e-8f
-#define InitialPhaseStep MaxPhaseStep
-#define MaxAmplitudeStep 1e-2f
-#define MinAmplitudeStep 1e-7f
-#define InitialAmplitudeStep MaxAmplitudeStep
-#define StepIncrement 2.0f
+#define BoostFactor 100000.0
+#define BinsToOptimize (FFTBins/25)
+#define EdgeBinsToSkip (FFTBins/22)
+#define CenterBinsToSkip 2
+#define MaxLookback 4
+#define PhaseStep 1e-2f
+#define AmplitudeStep 1e-2f
+#define MaxMu 50.0f
 #define DcTimeConst 5e-5f
+#define MinimumPower 0.1f
 
 #if defined(__arm__) && !defined(__force_hiq__)
-#define BuffersToSkip 4
-#define FFTIntegration 2
-#define CorrelationIntegration 4
+	#define BuffersToSkip 4
+	#define FFTIntegration 2
+	#define FFTOverlap 1
+	#define CorrelationIntegration 4
 #else
-#define BuffersToSkip 1
-#define FFTIntegration 4
-#define CorrelationIntegration 8
+	#define BuffersToSkip 0
+	#define FFTIntegration 4
+	#define FFTOverlap 2
+	#define CorrelationIntegration 16
 #endif
 
 struct iq_balancer_t;
 
 typedef airspyhf_complex_float_t complex_t;
 
-ADDAPI struct iq_balancer_t * ADDCALL iq_balancer_create();
+ADDAPI struct iq_balancer_t * ADDCALL iq_balancer_create(float initial_phase, float initial_amplitude);
 ADDAPI void ADDCALL iq_balancer_set_optimal_point(struct iq_balancer_t *iq_balancer, float w);
 ADDAPI void ADDCALL iq_balancer_process(struct iq_balancer_t *iq_balancer, complex_t* iq, int length);
 ADDAPI void ADDCALL iq_balancer_destroy(struct iq_balancer_t *iq_balancer);

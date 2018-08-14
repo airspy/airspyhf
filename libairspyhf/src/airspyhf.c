@@ -68,11 +68,8 @@ typedef int bool;
 static const char str_prefix_serial_airspyhf[STR_PREFIX_SERIAL_AIRSPYHF_SIZE] =
 { 'A', 'I', 'R', 'S', 'P', 'Y', 'H', 'F', ' ', 'S', 'N', ':' };
 
-#ifdef AIRSPYHF_BIG_ENDIAN
-#define TO_LE(x) __builtin_bswap32(x)
-#else
-#define TO_LE(x) x
-#endif
+#define INITIAL_PHASE (0.00006f)
+#define INITIAL_AMPLITUDE (-0.0045f)
 
 #pragma pack(push,1)
 
@@ -894,7 +891,7 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 		lib_device->calibration_ppb = 0;
 	}
 
-	lib_device->iq_balancer = iq_balancer_create();
+	lib_device->iq_balancer = iq_balancer_create(INITIAL_PHASE, INITIAL_AMPLITUDE);
 
 	*device = lib_device;
 
