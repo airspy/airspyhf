@@ -420,13 +420,13 @@ int main(int argc, char** argv)
 	uint32_t wav_sample_per_sec;
 	uint32_t nsrates;
 	uint32_t *supported_samplerates;
-	uint32_t sample_rate_u32;
+	uint32_t sample_rate_u32 = 768000;
 
 	struct airspyhf_device* device = 0;
 
 	bool freq = false;
 	uint32_t freq_hz = 0;
-	bool sample_rate = false;
+	bool sample_rate = true;
 	uint32_t sample_rate_val = 0;
 	bool serial_number = false;
 	uint64_t serial_number_val;
@@ -438,7 +438,7 @@ int main(int argc, char** argv)
 
 	bool do_not_use_manual_commands = false;
 
-	while( (opt = getopt(argc, argv, "r:ws:f:a::n:g:l:t:m:dhz")) != EOF )
+	while( (opt = getopt(argc, argv, "r:ws:f:a:n:g:l:t:m:dhz")) != EOF )
 	{
 		result = AIRSPYHF_SUCCESS;
 		switch( opt )
