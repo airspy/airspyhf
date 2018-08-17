@@ -133,14 +133,14 @@ extern ADDAPI int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uin
 extern ADDAPI int ADDCALL airspyhf_get_calibration(airspyhf_device_t* device, int32_t* ppb);
 extern ADDAPI int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb);
 extern ADDAPI int ADDCALL airspyhf_set_optimal_iq_correction_point(airspyhf_device_t* device, float w);
-extern ADDAPI int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device);
+extern ADDAPI int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device);	/* streaming needs to be stopped */
 extern ADDAPI int ADDCALL airspyhf_board_partid_serialno_read(airspyhf_device_t* device, airspyhf_read_partid_serialno_t* read_partid_serialno);
 extern ADDAPI int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* version, uint8_t length);
 extern ADDAPI int ADDCALL airspyhf_set_user_output(airspyhf_device_t* device, airspyhf_user_output_t pin, airspyhf_user_output_state_t value);
-extern ADDAPI int ADDCALL airspyhf_set_hf_agc(airspyhf_device_t* device, uint8_t flag);
-extern ADDAPI int ADDCALL airspyhf_set_hf_agc_threshold(airspyhf_device_t* device, uint8_t flag);
+extern ADDAPI int ADDCALL airspyhf_set_hf_agc(airspyhf_device_t* device, uint8_t flag);				/* 0 = off, 1 = on */
+extern ADDAPI int ADDCALL airspyhf_set_hf_agc_threshold(airspyhf_device_t* device, uint8_t flag);	/* when agc on: 0 = low, 1 = high */
 extern ADDAPI int ADDCALL airspyhf_set_hf_att(airspyhf_device_t* device, uint8_t value); /* Possible values: 0..8 Range: 0..48 dB Attenuation with 6 dB steps */
-extern ADDAPI int ADDCALL airspyhf_set_hf_lna(airspyhf_device_t* device, uint8_t flag);
+extern ADDAPI int ADDCALL airspyhf_set_hf_lna(airspyhf_device_t* device, uint8_t flag);	/* 0 or 1: 1 to activate LNA (alias PreAmp): 1 = +6 dB gain - compensated in digital */
 
 #ifdef __cplusplus
 }
