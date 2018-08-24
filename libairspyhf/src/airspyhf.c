@@ -1189,6 +1189,11 @@ int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device)
 	record.magic_number = CALIBRATION_MAGIC;
 	record.calibration_ppb = device->calibration_ppb;
 
+	if (airspyhf_is_streaming(device))
+	{
+		return AIRSPYHF_ERROR;
+	}
+
 	if (airspyhf_config_write(device, (uint8_t *)&record, sizeof(record)) != AIRSPYHF_SUCCESS)
 	{
 		return AIRSPYHF_ERROR;
