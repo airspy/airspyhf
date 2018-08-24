@@ -28,10 +28,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #include <stdint.h>
 
-#define AIRSPYHF_VERSION "1.4.1"
+#define AIRSPYHF_VERSION "1.4.2"
 #define AIRSPYHF_VER_MAJOR 1
 #define AIRSPYHF_VER_MINOR 4
-#define AIRSPYHF_VER_REVISION 1
+#define AIRSPYHF_VER_REVISION 2
 
 #define AIRSPYHF_ENDPOINT_IN (1)
 
@@ -133,6 +133,7 @@ extern ADDAPI int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uin
 extern ADDAPI int ADDCALL airspyhf_get_calibration(airspyhf_device_t* device, int32_t* ppb);
 extern ADDAPI int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb);
 extern ADDAPI int ADDCALL airspyhf_set_optimal_iq_correction_point(airspyhf_device_t* device, float w);
+extern ADDAPI int ADDCALL airspyhf_iq_balancer_configure(airspyhf_device_t* device, int buffers_to_skip, int fft_integration, int fft_overlap, int correlation_integration);
 extern ADDAPI int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_board_partid_serialno_read(airspyhf_device_t* device, airspyhf_read_partid_serialno_t* read_partid_serialno);
 extern ADDAPI int ADDCALL airspyhf_version_string_read(airspyhf_device_t* device, char* version, uint8_t length);

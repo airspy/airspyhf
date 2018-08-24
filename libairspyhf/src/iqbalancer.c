@@ -44,16 +44,24 @@ struct iq_balancer_t
 
 	float iavg;
 	float qavg;
-	float total_power;
+	float integrated_total_power;
+	float integrated_image_power;
+	float maximum_image_power;
 
 	float raw_phases[MaxLookback];
 	float raw_amplitudes[MaxLookback];
 
+	int buffers_to_skip;
+	int fft_integration;
+	int fft_overlap;
+	int correlation_integration;
+
 	int no_of_avg;
 	int no_of_raw;
 	int raw_ptr;
-	int power_flag[FFTIntegration];
 	int optimal_bin;
+	int reset_flag;
+	int *power_flag;
 
 	complex_t *corr;
 	complex_t *corr_plus;
@@ -79,13 +87,13 @@ static void __init_library()
 
 	for (i = 0; i <= length; i++)
 	{
-		__fft_window[i] = (float) (
+		__fft_window[i] = (float)(
 			+ 0.35875f
 			- 0.48829f * cos(2.0 * MATH_PI * i / length)
 			+ 0.14128f * cos(4.0 * MATH_PI * i / length)
 			- 0.01168f * cos(6.0 * MATH_PI * i / length)
 			);
-		__boost_window[i] = (float) (1.0 / BoostFactor + 1.0 / exp(pow(i * 2.0 / BinsToOptimize, 2.0)));
+		__boost_window[i] = (float)(1.0 / BoostFactor + 1.0 / exp(pow(i * 2.0 / BinsToOptimize, 2.0)));
 	}
 
 	__lib_initialized = 1;
@@ -203,7 +211,7 @@ static void cancel_dc(struct iq_balancer_t *iq_balancer, complex_t* iq, int leng
 	iq_balancer->qavg = qavg;
 }
 
-static void adjust_benchmark(struct iq_balancer_t *iq_balancer, complex_t *iq, float phase, float amplitude, int step)
+static float adjust_benchmark(struct iq_balancer_t *iq_balancer, complex_t *iq, float phase, float amplitude, int skip_power_calculation)
 {
 	int i;
 	float sum = 0;
@@ -217,11 +225,10 @@ static void adjust_benchmark(struct iq_balancer_t *iq_balancer, complex_t *iq, f
 
 		iq[i].re *= 1 + amplitude;
 		iq[i].im *= 1 - amplitude;
-		if (step == 0)
+		if (!skip_power_calculation)
 			sum += re * re + im * im;
 	}
-	if (step == 0)
-		iq_balancer->total_power = sum;
+	return sum;
 }
 
 static complex_t multiply_complex_complex(complex_t *a, const complex_t *b)
@@ -238,18 +245,20 @@ static int compute_corr(struct iq_balancer_t *iq_balancer, complex_t* iq, comple
 	int n, m;
 	int i, j;
 	int count = 0;
+	float power;
 	float phase = iq_balancer->phase + step * PhaseStep;
 	float amplitude = iq_balancer->amplitude + step * AmplitudeStep;
 
-	for (n = 0, m = 0; n <= length - FFTBins && m < FFTIntegration; n += FFTBins / FFTOverlap, m++)
+	for (n = 0, m = 0; n <= length - FFTBins && m < iq_balancer->fft_integration; n += FFTBins / iq_balancer->fft_overlap, m++)
 	{
 		memcpy(fftPtr, iq + n, FFTBins * sizeof(complex_t));
-		adjust_benchmark(iq_balancer, fftPtr, phase, amplitude, step);
+		power = adjust_benchmark(iq_balancer, fftPtr, phase, amplitude, step);
 		if (step == 0)
 		{
-			if (iq_balancer->total_power > MinimumPower)
+			if (power > MinimumPower)
 			{
 				iq_balancer->power_flag[m] = 1;
+				iq_balancer->integrated_total_power += power;
 			}
 			else
 			{
@@ -274,7 +283,9 @@ static int compute_corr(struct iq_balancer_t *iq_balancer, complex_t* iq, comple
 			{
 				for (i = EdgeBinsToSkip; i <= FFTBins - EdgeBinsToSkip; i++)
 				{
-					iq_balancer->boost[i] += fftPtr[i].re * fftPtr[i].re + fftPtr[i].im * fftPtr[i].im;
+					power = fftPtr[i].re * fftPtr[i].re + fftPtr[i].im * fftPtr[i].im;
+					iq_balancer->boost[i] += power;
+					iq_balancer->integrated_image_power += power * __boost_window[abs(FFTBins - i - iq_balancer->optimal_bin)];
 				}
 			}
 		}
@@ -295,7 +306,10 @@ static complex_t utility(struct iq_balancer_t *iq_balancer, complex_t* ccorr)
 		if (distance > CenterBinsToSkip)
 		{
 			float weight = (distance > EdgeBinsToSkip) ? 1.0f : (distance * invskip);
-			weight *= __boost_window[abs(iq_balancer->optimal_bin - i)];
+			if (iq_balancer->optimal_bin != FFTBins / 2)
+			{
+				weight *= __boost_window[abs(iq_balancer->optimal_bin - i)];
+			}
 			weight *= iq_balancer->boost[j] / (iq_balancer->boost[i] + EPSILON);
 			acc.re += ccorr[i].re * weight;
 			acc.im += ccorr[i].im * weight;
@@ -309,36 +323,88 @@ static void estimate_imbalance(struct iq_balancer_t *iq_balancer, complex_t* iq,
 	int i, j;
 	float amplitude, phase, mu;
 	complex_t a, b;
-	if (iq_balancer->no_of_avg == 0)
+
+	if (iq_balancer->reset_flag)
 	{
+		iq_balancer->reset_flag = 0;
+		iq_balancer->no_of_avg = -BuffersToSkipOnReset;
+		iq_balancer->maximum_image_power = 0;
+	}
+
+	if (iq_balancer->no_of_avg < 0)
+	{
+		iq_balancer->no_of_avg++;
+		return;
+	}
+	else if (iq_balancer->no_of_avg == 0)
+	{
+		iq_balancer->integrated_image_power = 0;
+		iq_balancer->integrated_total_power = 0;
 		memset(iq_balancer->boost, 0, FFTBins * sizeof(float));
 		memset(iq_balancer->corr, 0, FFTBins * sizeof(complex_t));
 		memset(iq_balancer->corr_plus, 0, FFTBins * sizeof(complex_t));
 	}
+	
+	iq_balancer->maximum_image_power *= MaxPowerDecay;
+
 	i = compute_corr(iq_balancer, iq, iq_balancer->corr, length, 0);
 	if (i == 0)
 		return;
+
 	iq_balancer->no_of_avg += i;
 	compute_corr(iq_balancer, iq, iq_balancer->corr_plus, length, 1);
 
-	if (iq_balancer->no_of_avg <= CorrelationIntegration * FFTIntegration)
+	if (iq_balancer->no_of_avg <= iq_balancer->correlation_integration * iq_balancer->fft_integration)
 		return;
+
 	iq_balancer->no_of_avg = 0;
+	
+	if (iq_balancer->optimal_bin == FFTBins / 2)
+	{
+		if (iq_balancer->integrated_total_power < iq_balancer->maximum_image_power)
+			return;
+		iq_balancer->maximum_image_power = iq_balancer->integrated_total_power;
+	}
+	else
+	{
+		if (iq_balancer->integrated_image_power - iq_balancer->integrated_total_power * BoostWindowNorm < iq_balancer->maximum_image_power * PowerThreshold)
+			return;
+		iq_balancer->maximum_image_power = iq_balancer->integrated_image_power - iq_balancer->integrated_total_power * BoostWindowNorm;
+	}
+
 	a = utility(iq_balancer, iq_balancer->corr);
 	b = utility(iq_balancer, iq_balancer->corr_plus);
+
 	mu = a.im - b.im;
-	if (fabs(mu) > 0.1f)  mu = a.im / mu; else mu = 0;
-	if (mu < -MaxMu)
-		mu = -MaxMu;
-	else if (mu > MaxMu)
-		mu = MaxMu;
+	if (fabs(mu) > MinDeltaMu)
+	{
+		mu = a.im / mu;
+		if (mu < -MaxMu)
+			mu = -MaxMu;
+		else if (mu > MaxMu)
+			mu = MaxMu;
+	}
+	else
+	{
+		mu = 0;
+	}
+
 	phase = iq_balancer->phase + PhaseStep * mu;
+
 	mu = a.re - b.re;
-	if (fabs(mu) > 0.1f)  mu = a.re / mu; else mu = 0;
-	if (mu < -MaxMu)
-		mu = -MaxMu;
-	else if (mu > MaxMu)
-		mu = MaxMu;
+	if (fabs(mu) > MinDeltaMu)
+	{
+		mu = a.re / mu;
+		if (mu < -MaxMu)
+			mu = -MaxMu;
+		else if (mu > MaxMu)
+			mu = MaxMu;
+	}
+	else
+	{
+		mu = 0;
+	}
+
 	amplitude = iq_balancer->amplitude + AmplitudeStep * mu;
 
 	if (iq_balancer->no_of_raw < MaxLookback)
@@ -355,6 +421,7 @@ static void estimate_imbalance(struct iq_balancer_t *iq_balancer, complex_t* iq,
 	phase /= iq_balancer->no_of_raw;
 	amplitude /= iq_balancer->no_of_raw;
 	iq_balancer->raw_ptr = (iq_balancer->raw_ptr + 1) & (MaxLookback - 1);
+
 	iq_balancer->phase = phase;
 	iq_balancer->amplitude = amplitude;
 }
@@ -386,7 +453,7 @@ static void adjust_phase_amplitude(struct iq_balancer_t *iq_balancer, complex_t*
 void ADDCALL iq_balancer_process(struct iq_balancer_t *iq_balancer, complex_t* iq, int length)
 {
 	cancel_dc(iq_balancer, iq, length);
-	if (++iq_balancer->estimation_count >  BuffersToSkip)
+	if (++iq_balancer->estimation_count > iq_balancer->buffers_to_skip)
 	{
 		estimate_imbalance(iq_balancer, iq, length);
 		iq_balancer->estimation_count = 0;
@@ -406,7 +473,21 @@ void ADDCALL iq_balancer_set_optimal_point(struct iq_balancer_t *iq_balancer, fl
 	}
 
 	iq_balancer->optimal_bin = (int) floor(FFTBins * (0.5 + w));
-	iq_balancer->no_of_raw = 0;
+	iq_balancer->reset_flag = 1;
+}
+
+void ADDCALL iq_balancer_configure(struct iq_balancer_t *iq_balancer, int buffers_to_skip, int fft_integration, int fft_overlap, int correlation_integration)
+{
+	iq_balancer->buffers_to_skip = buffers_to_skip;
+	iq_balancer->fft_integration = fft_integration;
+	iq_balancer->fft_overlap = fft_overlap;
+	iq_balancer->correlation_integration = correlation_integration;
+
+	free(iq_balancer->power_flag);
+	iq_balancer->power_flag = (int *) malloc(iq_balancer->fft_integration * sizeof(int));
+	memset(iq_balancer->power_flag, 0, iq_balancer->fft_integration * sizeof(int));
+
+	iq_balancer->reset_flag = 1;
 }
 
 struct iq_balancer_t * ADDCALL iq_balancer_create(float initial_phase, float initial_amplitude)
@@ -414,12 +495,20 @@ struct iq_balancer_t * ADDCALL iq_balancer_create(float initial_phase, float ini
 	struct iq_balancer_t *instance = (struct iq_balancer_t *) malloc(sizeof(struct iq_balancer_t));
 	memset(instance, 0, sizeof(struct iq_balancer_t));
 
+	instance->phase = initial_phase;
+	instance->amplitude = initial_amplitude;
+
+	instance->optimal_bin = FFTBins / 2;
+
+	instance->buffers_to_skip = BuffersToSkip;
+	instance->fft_integration = FFTIntegration;
+	instance->fft_overlap = FFTOverlap;
+	instance->correlation_integration = CorrelationIntegration;
+
 	instance->corr = (complex_t *) malloc(FFTBins * sizeof(complex_t));
 	instance->corr_plus = (complex_t *) malloc(FFTBins * sizeof(complex_t));
 	instance->boost = (float *) malloc(FFTBins * sizeof(float));
-
-	instance->phase = initial_phase;
-	instance->amplitude = initial_amplitude;
+	instance->power_flag = (int *) malloc(instance->fft_integration * sizeof(int));
 
 	__init_library();
 	return instance;
@@ -430,5 +519,6 @@ void ADDCALL iq_balancer_destroy(struct iq_balancer_t *iq_balancer)
 	free(iq_balancer->corr);
 	free(iq_balancer->corr_plus);
 	free(iq_balancer->boost);
+	free(iq_balancer->power_flag);
 	free(iq_balancer);
 }

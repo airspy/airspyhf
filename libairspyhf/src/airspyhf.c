@@ -97,6 +97,7 @@ typedef struct airspyhf_device
 	volatile uint32_t freq_khz;
 	volatile int32_t freq_shift;
 	volatile int32_t calibration_ppb;
+	volatile float optimal_point;
 	uint8_t enable_dsp;
 	airspyhf_complex_float_t vec;
 	struct iq_balancer_t *iq_balancer;
@@ -873,6 +874,7 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 	lib_device->freq_shift = 0;
 	lib_device->vec.re = 1.0f;
 	lib_device->vec.im = 0.0f;
+	lib_device->optimal_point = 0.0f;
 	lib_device->enable_dsp = 1;
 
 	if (airspyhf_config_read(lib_device, (uint8_t *) &record, sizeof(record)) == AIRSPYHF_SUCCESS)
@@ -1098,9 +1100,11 @@ int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 			AIRSPYHF_SET_FREQ,
 			0,
 			0,
-			(unsigned char*)&buf,
+			(unsigned char*) &buf,
 			sizeof(buf),
 			0);
+
+		iq_balancer_set_optimal_point(device->iq_balancer, device->optimal_point);
 
 		if (result < sizeof(buf))
 		{
@@ -1201,7 +1205,14 @@ int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb)
 
 int ADDCALL airspyhf_set_optimal_iq_correction_point(airspyhf_device_t* device, float w)
 {
-	iq_balancer_set_optimal_point(device->iq_balancer, w);
+	device->optimal_point = w;
+	iq_balancer_set_optimal_point(device->iq_balancer, device->optimal_point);
+	return AIRSPYHF_SUCCESS;
+}
+
+int ADDCALL airspyhf_iq_balancer_configure(airspyhf_device_t* device, int buffers_to_skip, int fft_integration, int fft_overlap, int correlation_integration)
+{
+	iq_balancer_configure(device->iq_balancer, buffers_to_skip, fft_integration, fft_overlap, correlation_integration);
 	return AIRSPYHF_SUCCESS;
 }
 
