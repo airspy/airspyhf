@@ -53,8 +53,7 @@ if(MINGW)
                             -D GCC_WINDRES
                             -I ${CMAKE_CURRENT_SOURCE_DIR}
                             -I ${CMAKE_CURRENT_BINARY_DIR}
-                            -o ${CMAKE_CURRENT_BINARY_DIR}/airspyrchf.obj
-                            -i ${CMAKE_CURRENT_SOURCE_DIR}/win32/airspyhf.rc)
+                            -o ${CMAKE_CURRENT_BINARY_DIR}/airspyrchf.obj)
     set(AIRSPYHF_DLL_SRCS ${CMAKE_CURRENT_BINARY_DIR}/airspyhfrc.obj)
 endif(MINGW)
 
