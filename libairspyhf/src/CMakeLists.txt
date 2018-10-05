@@ -41,22 +41,6 @@ use_c99()
 set(c_sources ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf.c ${CMAKE_CURRENT_SOURCE_DIR}/iqbalancer.c CACHE INTERNAL "List of C sources")
 set(c_headers ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf.h ${CMAKE_CURRENT_SOURCE_DIR}/iqbalancer.h ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf_commands.h CACHE INTERNAL "List of C headers")
 
-if(MINGW)
-    # This gets us DLL resource information when compiling on MinGW.
-    if(NOT CMAKE_RC_COMPILER)
-        set(CMAKE_RC_COMPILER windres.exe)
-    endif()
-
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/airspyhfrc.obj
-                       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/airspyhf.h
-                       COMMAND ${CMAKE_RC_COMPILER}
-                            -D GCC_WINDRES
-                            -I ${CMAKE_CURRENT_SOURCE_DIR}
-                            -I ${CMAKE_CURRENT_BINARY_DIR}
-                            -o ${CMAKE_CURRENT_BINARY_DIR}/airspyrchf.obj)
-    set(AIRSPYHF_DLL_SRCS ${CMAKE_CURRENT_BINARY_DIR}/airspyhfrc.obj)
-endif(MINGW)
-
 # Dynamic library
 add_library(airspyhf SHARED ${c_sources} ${AIRSPYHF_DLL_SRCS})
 set_target_properties(airspyhf PROPERTIES VERSION ${AIRSPYHF_VER_MAJOR}.${AIRSPYHF_VER_MINOR}.${AIRSPYHF_VER_REVISION})
