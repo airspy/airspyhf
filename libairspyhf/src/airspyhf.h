@@ -28,10 +28,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #include <stdint.h>
 
-#define AIRSPYHF_VERSION "1.4.2"
+#define AIRSPYHF_VERSION "1.5.0"
 #define AIRSPYHF_VER_MAJOR 1
-#define AIRSPYHF_VER_MINOR 4
-#define AIRSPYHF_VER_REVISION 2
+#define AIRSPYHF_VER_MINOR 5
+#define AIRSPYHF_VER_REVISION 0
 
 #define AIRSPYHF_ENDPOINT_IN (1)
 
@@ -126,6 +126,7 @@ extern ADDAPI int ADDCALL airspyhf_close(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_start(airspyhf_device_t* device, airspyhf_sample_block_cb_fn callback, void* ctx);
 extern ADDAPI int ADDCALL airspyhf_stop(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_is_streaming(airspyhf_device_t* device);
+extern ADDAPI int ADDCALL airspyhf_is_low_if(airspyhf_device_t* device); /* Tells if the current sample rate is Zero-IF (0) or Low-IF (1) */
 extern ADDAPI int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz);
 extern ADDAPI int ADDCALL airspyhf_set_lib_dsp(airspyhf_device_t* device, const uint8_t flag); /* Enables/Disables the IQ Correction, IF shift and Fine Tuning. */
 extern ADDAPI int ADDCALL airspyhf_get_samplerates(airspyhf_device_t* device, uint32_t* buffer, const uint32_t len);

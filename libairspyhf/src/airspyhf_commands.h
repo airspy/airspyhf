@@ -32,23 +32,24 @@ typedef enum
     RECEIVER_MODE_ON                    = 1
 } receiver_mode_t;
 
-#define AIRSPYHF_CMD_MAX (13)
+#define AIRSPYHF_CMD_MAX (14)
 typedef enum
 {
-    AIRSPYHF_INVALID                    = 0,
-    AIRSPYHF_RECEIVER_MODE              = 1,
-    AIRSPYHF_SET_FREQ                   = 2,
-    AIRSPYHF_GET_SAMPLERATES            = 3,
-    AIRSPYHF_SET_SAMPLERATE             = 4,
-    AIRSPYHF_CONFIG_READ                = 5,
-    AIRSPYHF_CONFIG_WRITE               = 6,
-    AIRSPYHF_GET_SERIALNO_BOARDID       = 7,
-	AIRSPYHF_SET_USER_OUTPUT			= 8,
-	AIRSPYHF_GET_VERSION_STRING         = 9,
-	AIRSPYHF_SET_HF_AGC                 = 10,
-	AIRSPYHF_SET_HF_AGC_THRESHOLD       = 11,
-	AIRSPYHF_SET_HF_ATT                 = 12,
-	AIRSPYHF_SET_HF_LNA                 = AIRSPYHF_CMD_MAX,
+    AIRSPYHF_INVALID                      = 0,
+    AIRSPYHF_RECEIVER_MODE                = 1,
+    AIRSPYHF_SET_FREQ                     = 2,
+    AIRSPYHF_GET_SAMPLERATES              = 3,
+    AIRSPYHF_SET_SAMPLERATE               = 4,
+    AIRSPYHF_CONFIG_READ                  = 5,
+    AIRSPYHF_CONFIG_WRITE                 = 6,
+    AIRSPYHF_GET_SERIALNO_BOARDID         = 7,
+	AIRSPYHF_SET_USER_OUTPUT              = 8,
+	AIRSPYHF_GET_VERSION_STRING           = 9,
+	AIRSPYHF_SET_HF_AGC                   = 10,
+	AIRSPYHF_SET_HF_AGC_THRESHOLD         = 11,
+	AIRSPYHF_SET_HF_ATT                   = 12,
+	AIRSPYHF_SET_HF_LNA                   = 13,
+	AIRSPYHF_GET_SAMPLERATE_ARCHITECTURES = AIRSPYHF_CMD_MAX,
 } airspyhf_vendor_request;
 
 #endif

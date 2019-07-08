@@ -92,6 +92,7 @@ typedef struct airspyhf_device
 	pthread_mutex_t consumer_mp;
 	uint32_t supported_samplerate_count;
 	uint32_t *supported_samplerates;
+	uint8_t *samplerate_architectures;
 	volatile uint32_t current_samplerate;
 	volatile uint32_t freq_hz;
 	volatile uint32_t freq_khz;
@@ -99,6 +100,7 @@ typedef struct airspyhf_device
 	volatile int32_t calibration_ppb;
 	volatile float optimal_point;
 	uint8_t enable_dsp;
+	uint8_t is_low_if;
 	airspyhf_complex_float_t vec;
 	struct iq_balancer_t *iq_balancer;
 	uint32_t transfer_count;
@@ -292,10 +294,7 @@ static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t 
 	int i;
 	airspyhf_complex_float_t vec = device->vec;
 	airspyhf_complex_float_t rot;
-	double angle = 2.0 * M_PI * device->freq_shift / (double) device->current_samplerate;
-
-	rot.re = (float) cos(angle);
-	rot.im = (float) -sin(angle);
+	double angle;
 
 	for (i = 0; i < count; i++)
 	{
@@ -305,8 +304,18 @@ static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t 
 
 	if (device->enable_dsp)
 	{
-		iq_balancer_process(device->iq_balancer, dest, count);
+		if (!device->is_low_if)
+		{
+			// Zero IF requires external IQ correction
+			iq_balancer_process(device->iq_balancer, dest, count);
+		}
 
+		// Fine tuning
+
+		angle = 2.0 * M_PI * device->freq_shift / (double)device->current_samplerate;
+
+		rot.re = (float) cos(angle);
+		rot.im = (float) -sin(angle);
 		for (i = 0; i < count; i++)
 		{
 			rotate_complex(&vec, &rot);
@@ -557,6 +566,28 @@ static int airspyhf_read_samplerates_from_fw(airspyhf_device_t* device, uint32_t
 	{
 		return AIRSPYHF_ERROR;
 	}
+	return AIRSPYHF_SUCCESS;
+}
+
+static int airspyhf_read_samplerate_architectures_from_fw(airspyhf_device_t* device, uint8_t* buffer, const uint32_t len)
+{
+	int result;
+
+	result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		AIRSPYHF_GET_SAMPLERATE_ARCHITECTURES,
+		0,
+		len,
+		(unsigned char*) buffer,
+		(len > 0 ? len : 1) * (int16_t) sizeof(uint32_t),
+		0);
+
+	if (result < 1)
+	{
+		return AIRSPYHF_ERROR;
+	}
+
 	return AIRSPYHF_SUCCESS;
 }
 
@@ -837,12 +868,25 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 	lib_device->streaming = false;
 	lib_device->stop_requested = false;
 
+	lib_device->supported_samplerates = NULL;
+	lib_device->samplerate_architectures = NULL;
+
 	result = airspyhf_read_samplerates_from_fw(lib_device, &lib_device->supported_samplerate_count, 0);
 	if (result == AIRSPYHF_SUCCESS)
 	{
 		lib_device->supported_samplerates = (uint32_t *)malloc(lib_device->supported_samplerate_count * sizeof(uint32_t));
 		result = airspyhf_read_samplerates_from_fw(lib_device, lib_device->supported_samplerates, lib_device->supported_samplerate_count);
-		if (result != AIRSPYHF_SUCCESS)
+		if (result == AIRSPYHF_SUCCESS)
+		{
+			lib_device->samplerate_architectures = (uint8_t *)malloc(lib_device->supported_samplerate_count * sizeof(uint8_t));
+			result = airspyhf_read_samplerate_architectures_from_fw(lib_device, lib_device->samplerate_architectures, lib_device->supported_samplerate_count);
+			if (result != AIRSPYHF_SUCCESS)
+			{
+				memset(lib_device->samplerate_architectures, 0, lib_device->supported_samplerate_count * sizeof(uint8_t)); // Asume Zero IF for all
+				result = AIRSPYHF_SUCCESS; // Clear this error for backward compatibility.
+			}
+		}
+		else
 		{
 			free(lib_device->supported_samplerates);
 			lib_device->supported_samplerates = NULL;
@@ -851,12 +895,18 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 
 	if (result != AIRSPYHF_SUCCESS)
 	{
+		// Assume one default sample rate with Zero IF
+
 		lib_device->supported_samplerate_count = 1;
 		lib_device->supported_samplerates = (uint32_t *) malloc(lib_device->supported_samplerate_count * sizeof(uint32_t));
 		lib_device->supported_samplerates[0] = DEFAULT_SAMPLERATE;
+
+		lib_device->samplerate_architectures = (uint8_t *) malloc(lib_device->supported_samplerate_count * sizeof(uint8_t));
+		lib_device->samplerate_architectures[0] = 0;
 	}
 
 	lib_device->current_samplerate = lib_device->supported_samplerates[0];
+	lib_device->is_low_if = lib_device->samplerate_architectures[0];
 	
 	result = allocate_transfers(lib_device);
 	if (result != 0)
@@ -939,11 +989,17 @@ int ADDCALL airspyhf_close(airspyhf_device_t* device)
 		airspyhf_open_exit(device);
 		free_transfers(device);
 		free(device->supported_samplerates);
+		free(device->samplerate_architectures);
 		iq_balancer_destroy(device->iq_balancer);
 		free(device);
 	}
 
 	return result;
+}
+
+int ADDCALL airspyhf_is_low_if(airspyhf_device_t* device)
+{
+	return device->is_low_if;
 }
 
 int ADDCALL airspyhf_get_samplerates(airspyhf_device_t* device, uint32_t* buffer, const uint32_t len)
@@ -1005,6 +1061,7 @@ int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplera
 	}
 
 	device->current_samplerate = device->supported_samplerates[samplerate];
+	device->is_low_if = device->samplerate_architectures[samplerate];
 	
 	return AIRSPYHF_SUCCESS;
 }
@@ -1079,11 +1136,11 @@ int ADDCALL airspyhf_stop(airspyhf_device_t* device)
 int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 {
 	const int tuning_alignment = 1000;
-	const uint32_t lo_low_khz = 300;
+	const uint32_t lo_low_khz = 100;
 
 	int result;
 	uint8_t buf[4];
-	uint32_t if_shift = device->enable_dsp ? DEFAULT_IF_SHIFT : 0;
+	uint32_t if_shift = (device->enable_dsp && !device->is_low_if) ? DEFAULT_IF_SHIFT : 0;
 	uint32_t adjusted_freq_hz = (uint32_t) ((int64_t) freq_hz * (int64_t)(1000000000LL + device->calibration_ppb) / 1000000000LL);
 	uint32_t freq_khz = MAX(lo_low_khz, (adjusted_freq_hz + if_shift + tuning_alignment / 2) / tuning_alignment);
 
