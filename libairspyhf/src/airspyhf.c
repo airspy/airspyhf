@@ -292,7 +292,7 @@ static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t 
 	const float scale = 1.0f / 32768;
 
 	int i;
-	airspyhf_complex_float_t vec = device->vec;
+	airspyhf_complex_float_t vec;
 	airspyhf_complex_float_t rot;
 	double angle;
 
@@ -311,18 +311,23 @@ static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t 
 		}
 
 		// Fine tuning
-
-		angle = 2.0 * M_PI * device->freq_shift / (double)device->current_samplerate;
-
-		rot.re = (float) cos(angle);
-		rot.im = (float) -sin(angle);
-		for (i = 0; i < count; i++)
+		if (device->freq_shift != 0)
 		{
-			rotate_complex(&vec, &rot);
-			multiply_complex_complex(&dest[i], &vec);
-		}
+			angle = 2.0 * M_PI * device->freq_shift / (double) device->current_samplerate;
 
-		device->vec = vec;
+			vec = device->vec;
+
+			rot.re = (float) cos(angle);
+			rot.im = (float) -sin(angle);
+
+			for (i = 0; i < count; i++)
+			{
+				rotate_complex(&vec, &rot);
+				multiply_complex_complex(&dest[i], &vec);
+			}
+
+			device->vec = vec;
+		}
 	}
 }
 
