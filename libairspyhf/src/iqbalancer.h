@@ -35,7 +35,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #define AmplitudeStep 1e-2f
 #define MaxMu 50.0f
 #define MinDeltaMu 0.1f
-#define DcTimeConst 8e-4f
+#define DcTimeConst 1e-4f
 #define MinimumPower 0.01f
 #define PowerThreshold 0.5f
 #define BuffersToSkipOnReset 2
