@@ -1166,10 +1166,10 @@ int ADDCALL airspyhf_stop(airspyhf_device_t* device)
 int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 {
 	const int tuning_alignment = 1000;
-	const uint32_t lo_low_khz = 90;
 
 	int result;
 	uint8_t buf[4];
+	uint32_t lo_low_khz = (device->current_samplerate / 2 > 90) ? 110 : 90;
 	uint32_t if_shift = (device->enable_dsp && !device->is_low_if) ? DEFAULT_IF_SHIFT : 0;
 	uint32_t adjusted_freq_hz = (uint32_t) ((int64_t) freq_hz * (int64_t)(1000000000LL + device->calibration_ppb) / 1000000000LL);
 	uint32_t freq_khz = MAX(lo_low_khz, (adjusted_freq_hz + if_shift + tuning_alignment / 2) / tuning_alignment);
