@@ -63,8 +63,8 @@ typedef int bool;
 #define CALIBRATION_MAGIC (0xA5CA71B0)
 
 #define DEFAULT_IF_SHIFT (5000)
-#define MIN_ZERO_IF_LO (140)
-#define MIN_LOW_IF_LO (96)
+#define MIN_ZERO_IF_LO (180)
+#define MIN_LOW_IF_LO (84)
 
 #define STR_PREFIX_SERIAL_AIRSPYHF_SIZE (12)
 static const char str_prefix_serial_airspyhf[STR_PREFIX_SERIAL_AIRSPYHF_SIZE] =
@@ -1078,7 +1078,7 @@ int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplera
 			sizeof(buf),
 			0);
 
-		if (result != 0)
+		if (result < sizeof(buf))
 		{
 			return AIRSPYHF_ERROR;
 		}
