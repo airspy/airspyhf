@@ -63,6 +63,8 @@ typedef int bool;
 #define CALIBRATION_MAGIC (0xA5CA71B0)
 
 #define DEFAULT_IF_SHIFT (5000)
+#define LOW_IF_MIN_LO (80)
+#define ZERO_IF_MIN_LO (110)
 
 #define STR_PREFIX_SERIAL_AIRSPYHF_SIZE (12)
 static const char str_prefix_serial_airspyhf[STR_PREFIX_SERIAL_AIRSPYHF_SIZE] =
@@ -1169,7 +1171,7 @@ int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 
 	int result;
 	uint8_t buf[4];
-	uint32_t lo_low_khz = (device->current_samplerate / 2 > 90) ? 110 : 90;
+	uint32_t lo_low_khz = device->is_low_if ? ZERO_IF_MIN_LO : LOW_IF_MIN_LO;
 	uint32_t if_shift = (device->enable_dsp && !device->is_low_if) ? DEFAULT_IF_SHIFT : 0;
 	uint32_t adjusted_freq_hz = (uint32_t) ((int64_t) freq_hz * (int64_t)(1000000000LL + device->calibration_ppb) / 1000000000LL);
 	uint32_t freq_khz = MAX(lo_low_khz, (adjusted_freq_hz + if_shift + tuning_alignment / 2) / tuning_alignment);
