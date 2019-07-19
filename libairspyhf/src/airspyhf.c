@@ -101,6 +101,7 @@ typedef struct airspyhf_device
 	volatile float optimal_point;
 	uint8_t enable_dsp;
 	uint8_t is_low_if;
+	float filter_gain;
 	airspyhf_complex_float_t vec;
 	struct iq_balancer_t *iq_balancer;
 	uint32_t transfer_count;
@@ -295,11 +296,14 @@ static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t 
 	airspyhf_complex_float_t vec;
 	airspyhf_complex_float_t rot;
 	double angle;
+	float conversion_gain;
+
+	conversion_gain = scale * device->filter_gain;
 
 	for (i = 0; i < count; i++)
 	{
-		dest[i].re = src[i].re * scale;
-		dest[i].im = src[i].im * scale;
+		dest[i].re = src[i].re * conversion_gain;
+		dest[i].im = src[i].im * conversion_gain;
 	}
 
 	if (device->enable_dsp)
@@ -930,6 +934,7 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 	lib_device->vec.re = 1.0f;
 	lib_device->vec.im = 0.0f;
 	lib_device->optimal_point = 0.0f;
+	lib_device->filter_gain = 0.0f;
 	lib_device->enable_dsp = 1;
 
 	if (airspyhf_config_read(lib_device, (uint8_t *) &record, sizeof(record)) == AIRSPYHF_SUCCESS)
@@ -1029,6 +1034,7 @@ int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplera
 {
 	int result;
 	uint32_t i;
+	uint8_t gain;
 
 	if (samplerate > MAX_SAMPLERATE_INDEX)
 	{
@@ -1063,6 +1069,25 @@ int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplera
 	if (result != 0)
 	{
 		return AIRSPYHF_ERROR;
+	}
+
+	result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		AIRSPYHF_GET_FILTER_GAIN,
+		0,
+		0,
+		&gain,
+		sizeof(uint8_t),
+		0);
+
+	if (result == sizeof(uint8_t))
+	{
+		device->filter_gain = powf(10.0f, (float) gain * -0.05f);
+	}
+	else
+	{
+		device->filter_gain = 0.0;
 	}
 
 	device->current_samplerate = device->supported_samplerates[samplerate];
@@ -1141,7 +1166,7 @@ int ADDCALL airspyhf_stop(airspyhf_device_t* device)
 int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 {
 	const int tuning_alignment = 1000;
-	const uint32_t lo_low_khz = 100;
+	const uint32_t lo_low_khz = 90;
 
 	int result;
 	uint8_t buf[4];
