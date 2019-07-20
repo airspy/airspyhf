@@ -936,7 +936,7 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 	lib_device->vec.re = 1.0f;
 	lib_device->vec.im = 0.0f;
 	lib_device->optimal_point = 0.0f;
-	lib_device->filter_gain = 0.0f;
+	lib_device->filter_gain = 1.0f;
 	lib_device->enable_dsp = 1;
 
 	if (airspyhf_config_read(lib_device, (uint8_t *) &record, sizeof(record)) == AIRSPYHF_SUCCESS)
@@ -1118,7 +1118,7 @@ int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplera
 	}
 	else
 	{
-		device->filter_gain = 0.0;
+		device->filter_gain = 1.0;
 	}
 
 	airspyhf_set_freq(device, device->freq_hz);
