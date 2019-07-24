@@ -33,6 +33,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #endif
 
 #define EPSILON 0.01f
+#define WorkingBufferLength (FFTBins * (1 + FFTIntegration / FFTOverlap))
 
 struct iq_balancer_t
 {
@@ -51,7 +52,9 @@ struct iq_balancer_t
 	float raw_phases[MaxLookback];
 	float raw_amplitudes[MaxLookback];
 
+	int skipped_buffers;
 	int buffers_to_skip;
+	int working_buffer_pos;
 	int fft_integration;
 	int fft_overlap;
 	int correlation_integration;
@@ -65,9 +68,8 @@ struct iq_balancer_t
 
 	complex_t *corr;
 	complex_t *corr_plus;
+	complex_t *working_buffer;
 	float *boost;
-
-	int estimation_count;
 };
 
 static uint8_t __lib_initialized = 0;
@@ -88,7 +90,7 @@ static void __init_library()
 	for (i = 0; i <= length; i++)
 	{
 		__fft_window[i] = (float)(
-			+ 0.35875f
+			+0.35875f
 			- 0.48829f * cos(2.0 * MATH_PI * i / length)
 			+ 0.14128f * cos(4.0 * MATH_PI * i / length)
 			- 0.01168f * cos(6.0 * MATH_PI * i / length)
@@ -154,8 +156,8 @@ static void fft(complex_t *buffer, int length)
 		u.re = 1.0f;
 		u.im = 0.0f;
 
-		r.re = (float) cos(MATH_PI / le2);
-		r.im = (float) -sin(MATH_PI / le2);
+		r.re = (float)cos(MATH_PI / le2);
+		r.im = (float)-sin(MATH_PI / le2);
 
 		for (j = 1; j <= le2; ++j)
 		{
@@ -285,7 +287,14 @@ static int compute_corr(struct iq_balancer_t *iq_balancer, complex_t* iq, comple
 				{
 					power = fftPtr[i].re * fftPtr[i].re + fftPtr[i].im * fftPtr[i].im;
 					iq_balancer->boost[i] += power;
-					iq_balancer->integrated_image_power += power * __boost_window[abs(FFTBins - i - iq_balancer->optimal_bin)];
+					if (iq_balancer->optimal_bin == FFTBins / 2)
+					{
+						iq_balancer->integrated_image_power += power;
+					}
+					else
+					{
+						iq_balancer->integrated_image_power += power * __boost_window[abs(FFTBins - i - iq_balancer->optimal_bin)];
+					}
 				}
 			}
 		}
@@ -344,7 +353,7 @@ static void estimate_imbalance(struct iq_balancer_t *iq_balancer, complex_t* iq,
 		memset(iq_balancer->corr, 0, FFTBins * sizeof(complex_t));
 		memset(iq_balancer->corr_plus, 0, FFTBins * sizeof(complex_t));
 	}
-	
+
 	iq_balancer->maximum_image_power *= MaxPowerDecay;
 
 	i = compute_corr(iq_balancer, iq, iq_balancer->corr, length, 0);
@@ -358,7 +367,7 @@ static void estimate_imbalance(struct iq_balancer_t *iq_balancer, complex_t* iq,
 		return;
 
 	iq_balancer->no_of_avg = 0;
-	
+
 	if (iq_balancer->optimal_bin == FFTBins / 2)
 	{
 		if (iq_balancer->integrated_total_power < iq_balancer->maximum_image_power)
@@ -452,12 +461,28 @@ static void adjust_phase_amplitude(struct iq_balancer_t *iq_balancer, complex_t*
 
 void ADDCALL iq_balancer_process(struct iq_balancer_t *iq_balancer, complex_t* iq, int length)
 {
+	int count;
+
 	cancel_dc(iq_balancer, iq, length);
-	if (++iq_balancer->estimation_count > iq_balancer->buffers_to_skip)
+
+	count = WorkingBufferLength - iq_balancer->working_buffer_pos;
+	if (count >= length)
 	{
-		estimate_imbalance(iq_balancer, iq, length);
-		iq_balancer->estimation_count = 0;
+		count = length;
 	}
+	memcpy(iq_balancer->working_buffer + iq_balancer->working_buffer_pos, iq, count * sizeof(complex_t));
+	iq_balancer->working_buffer_pos += count;
+	if (iq_balancer->working_buffer_pos >= WorkingBufferLength)
+	{
+		iq_balancer->working_buffer_pos = 0;
+
+		if (++iq_balancer->skipped_buffers > iq_balancer->buffers_to_skip)
+		{
+			iq_balancer->skipped_buffers = 0;
+			estimate_imbalance(iq_balancer, iq_balancer->working_buffer, WorkingBufferLength);
+		}
+	}
+
 	adjust_phase_amplitude(iq_balancer, iq, length);
 }
 
@@ -472,7 +497,7 @@ void ADDCALL iq_balancer_set_optimal_point(struct iq_balancer_t *iq_balancer, fl
 		w = 0.5f;
 	}
 
-	iq_balancer->optimal_bin = (int) floor(FFTBins * (0.5 + w));
+	iq_balancer->optimal_bin = (int)floor(FFTBins * (0.5 + w));
 	iq_balancer->reset_flag = 1;
 }
 
@@ -484,7 +509,7 @@ void ADDCALL iq_balancer_configure(struct iq_balancer_t *iq_balancer, int buffer
 	iq_balancer->correlation_integration = correlation_integration;
 
 	free(iq_balancer->power_flag);
-	iq_balancer->power_flag = (int *) malloc(iq_balancer->fft_integration * sizeof(int));
+	iq_balancer->power_flag = (int *)malloc(iq_balancer->fft_integration * sizeof(int));
 	memset(iq_balancer->power_flag, 0, iq_balancer->fft_integration * sizeof(int));
 
 	iq_balancer->reset_flag = 1;
@@ -505,10 +530,11 @@ struct iq_balancer_t * ADDCALL iq_balancer_create(float initial_phase, float ini
 	instance->fft_overlap = FFTOverlap;
 	instance->correlation_integration = CorrelationIntegration;
 
-	instance->corr = (complex_t *) malloc(FFTBins * sizeof(complex_t));
-	instance->corr_plus = (complex_t *) malloc(FFTBins * sizeof(complex_t));
-	instance->boost = (float *) malloc(FFTBins * sizeof(float));
-	instance->power_flag = (int *) malloc(instance->fft_integration * sizeof(int));
+	instance->corr = (complex_t *)malloc(FFTBins * sizeof(complex_t));
+	instance->corr_plus = (complex_t *)malloc(FFTBins * sizeof(complex_t));
+	instance->working_buffer = (complex_t *)malloc(WorkingBufferLength * sizeof(complex_t));
+	instance->boost = (float *)malloc(FFTBins * sizeof(float));
+	instance->power_flag = (int *)malloc(instance->fft_integration * sizeof(int));
 
 	__init_library();
 	return instance;
@@ -518,6 +544,7 @@ void ADDCALL iq_balancer_destroy(struct iq_balancer_t *iq_balancer)
 {
 	free(iq_balancer->corr);
 	free(iq_balancer->corr_plus);
+	free(iq_balancer->working_buffer);
 	free(iq_balancer->boost);
 	free(iq_balancer->power_flag);
 	free(iq_balancer);
