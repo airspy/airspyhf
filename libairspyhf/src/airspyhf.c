@@ -1009,6 +1009,12 @@ int ADDCALL airspyhf_close(airspyhf_device_t* device)
 	return result;
 }
 
+int ADDCALL airspyhf_get_output_size(airspyhf_device_t * device)
+{
+	// Todo: Make this configurable
+	return SAMPLES_TO_TRANSFER;
+}
+
 int ADDCALL airspyhf_is_low_if(airspyhf_device_t* device)
 {
 	return device->is_low_if;

@@ -28,10 +28,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #include <stdint.h>
 
-#define AIRSPYHF_VERSION "1.6.7"
+#define AIRSPYHF_VERSION "1.6.8"
 #define AIRSPYHF_VER_MAJOR 1
 #define AIRSPYHF_VER_MINOR 6
-#define AIRSPYHF_VER_REVISION 7
+#define AIRSPYHF_VER_REVISION 8
 
 #define AIRSPYHF_ENDPOINT_IN (1)
 
@@ -123,6 +123,7 @@ extern ADDAPI int ADDCALL airspyhf_list_devices(uint64_t *serials, int count);
 extern ADDAPI int ADDCALL airspyhf_open(airspyhf_device_t** device);
 extern ADDAPI int ADDCALL airspyhf_open_sn(airspyhf_device_t** device, uint64_t serial_number);
 extern ADDAPI int ADDCALL airspyhf_close(airspyhf_device_t* device);
+extern ADDAPI int ADDCALL airspyhf_get_output_size(airspyhf_device_t* device); /* Returns the number of IQ samples to expect in the callback */
 extern ADDAPI int ADDCALL airspyhf_start(airspyhf_device_t* device, airspyhf_sample_block_cb_fn callback, void* ctx);
 extern ADDAPI int ADDCALL airspyhf_stop(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_is_streaming(airspyhf_device_t* device);
