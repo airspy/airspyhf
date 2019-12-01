@@ -546,19 +546,6 @@ static void airspyhf_open_exit(airspyhf_device_t* device)
 	device->usb_context = NULL;
 }
 
-static void upper_string(unsigned char *string, size_t len)
-{
-	while (len > 0)
-	{
-		if (*string >= 'a' && *string <= 'z')
-		{
-			*string = *string - 32;
-		}
-		string++;
-		len--;
-	}
-}
-
 static int airspyhf_read_samplerates_from_fw(airspyhf_device_t* device, uint32_t* buffer, const uint32_t len)
 {
 	int result;
