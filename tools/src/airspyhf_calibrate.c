@@ -42,7 +42,6 @@ void print_receiver_data (struct airspyhf_device* pd)
 {
 	if (pd) {
 		airspyhf_read_partid_serialno_t read_partid_serialno;
-		unsigned nsrates;
 		char vstr[255]; // the size of buffer length has to be restricted to 1 byte
 		int32_t ppb;
 
@@ -71,21 +70,36 @@ void print_receiver_data (struct airspyhf_device* pd)
 static void usage(void)
 {
 	printf("Usage:\n");
-	printf("\t-s serial number: open receiver with specified 64-bit serial number (required).\n");
+	printf("\t-s <serial number>: open receiver with specified 64-bit serial number (required).\n");
+	printf("\t-c <new ppb>: set receiver with specified new calibration value (optional, signed decimal).\n");
 }
 
+void write_new_calibration_value (struct airspyhf_device *pd, int32_t new_ppb)
+{
+	if (airspyhf_set_calibration(pd, new_ppb) == AIRSPYHF_SUCCESS) {
+		printf("New Calibration = %d\n", new_ppb);
+	} else {
+		fprintf(stderr, "airspyhf_set_calibration() failed\n");
+	}
 
+	if (airspyhf_flash_calibration(pd) == AIRSPYHF_SUCCESS) {
+		printf("Flash Calibration successfully done\n");
+	} else {
+		fprintf(stderr, "airspyhf_flash_calibration() failed\n");
+	}
+}
 
 int main(const int argc, char * const *argv)
 {
 	int opt;
-	airspyhf_lib_version_t libv;
 	unsigned serial_number = 0;
 	unsigned long long sn;
 	unsigned ndev;
+	unsigned set_calibration = 0;
+	int32_t new_ppb;
 
 	// scan command line options
-	while( (opt = getopt(argc, argv, "?hs:")) != EOF ) {
+	while( (opt = getopt(argc, argv, "?hs:c:")) != EOF ) {
 
 		uint32_t sn_msb;
 		uint32_t sn_lsb;
@@ -96,6 +110,16 @@ int main(const int argc, char * const *argv)
 				sn_msb = (uint32_t)(sn >> 32);
 				sn_lsb = (uint32_t)(sn & 0xFFFFFFFF);
 				serial_number = 1;
+			} else {
+				fprintf(stderr, "argument error: '-%c %s'\n", opt, optarg);
+				usage();
+				return EXIT_FAILURE;
+			}
+			break;
+
+		case 'c':
+			if (sscanf(optarg, "%d", &new_ppb) == 1) {
+				set_calibration = 1;
 			} else {
 				fprintf(stderr, "argument error: '-%c %s'\n", opt, optarg);
 				usage();
@@ -126,6 +150,9 @@ int main(const int argc, char * const *argv)
 
 		if (airspyhf_open_sn(&dev, sn) == AIRSPYHF_SUCCESS) {
 			print_receiver_data (dev);
+			if (set_calibration) {
+				write_new_calibration_value(dev, new_ppb);
+			}
 			return EXIT_SUCCESS;
 		} else {
 			fprintf (stderr, "Unable to open device with S/N 0x%16llX\n", sn);
