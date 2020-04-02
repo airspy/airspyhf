@@ -43,7 +43,6 @@ void print_receiver_data (struct airspyhf_device* pd)
 		airspyhf_read_partid_serialno_t read_partid_serialno;
 		unsigned nsrates;
 		char vstr[255]; // the size of buffer length has to be restricted to 1 byte
-		int32_t ppb;
 
 		if (airspyhf_board_partid_serialno_read(pd, &read_partid_serialno) == AIRSPYHF_SUCCESS) {
 			printf("S/N: 0x%08X%08X\n",
@@ -58,12 +57,6 @@ void print_receiver_data (struct airspyhf_device* pd)
 			printf("Firmware Version: %s\n", vstr);
 		else
 			fprintf(stderr, "airspyhf_version_string_read() failed\n");
-
-		if (airspyhf_get_calibration(pd, &ppb) == AIRSPYHF_SUCCESS) {
-			printf("Calibration = %d\n", ppb);
-		} else {
-			fprintf(stderr, "airspyhf_get_calibration() failed\n");
-		}
 
 		if (airspyhf_get_samplerates(pd, &nsrates, 0) == AIRSPYHF_SUCCESS) {
 			uint32_t *samplerates;
