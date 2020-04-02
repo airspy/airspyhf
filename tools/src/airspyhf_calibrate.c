@@ -9,8 +9,7 @@
  *
  * Compile with:
  *
- * gcc -Wall airspyhf_info.c  -lairspyhf -o airspyhf_info -lm
- *
+ * gcc -Wall airspyhf_calibrate.c -lairspyhf -o airspyhf_calibrate -lm
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +35,7 @@
 #include <airspyhf.h>
 
 /*
- * print all the receiver data available from libairspyhf
+ * print the receiver calibration data
  */
 void print_receiver_data (struct airspyhf_device* pd)
 {
@@ -46,18 +45,13 @@ void print_receiver_data (struct airspyhf_device* pd)
 		int32_t ppb;
 
 		if (airspyhf_board_partid_serialno_read(pd, &read_partid_serialno) == AIRSPYHF_SUCCESS) {
-			printf("S/N: 0x%08X%08X / ",
+			printf("S/N: 0x%08X%08X\n",
 					read_partid_serialno.serial_no[0],
 					read_partid_serialno.serial_no[1]
 			);
-			printf("Part ID: 0x%08X / ", read_partid_serialno.part_id);
 		} else {
 			fprintf(stderr, "airspyhf_board_partid_serialno_read() failed\n");
 		}
-		if (airspyhf_version_string_read(pd, vstr, sizeof(vstr)) == AIRSPYHF_SUCCESS)
-			printf("Firmware Version: %s\n", vstr);
-		else
-			fprintf(stderr, "airspyhf_version_string_read() failed\n");
 
 		if (airspyhf_get_calibration(pd, &ppb) == AIRSPYHF_SUCCESS) {
 			printf("Calibration = %d\n", ppb);
