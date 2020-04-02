@@ -91,7 +91,7 @@ int main (const int argc, char **argv)
 			break;
 
 			case 's':
-				if (sscanf(optarg, "0x%Lx", &sn) == 1) {
+				if (sscanf(optarg, "0x%llx", &sn) == 1) {
 					sn_msb = (uint32_t)(sn >> 32);
 					sn_lsb = (uint32_t)(sn & 0xFFFFFFFF);
 					printf("Receiver serial number to be opened: 0x%08X%08X\n",
@@ -126,7 +126,7 @@ int main (const int argc, char **argv)
 
 	if(serial_number) {
 		if (airspyhf_open_sn(&dev, sn) != AIRSPYHF_SUCCESS) {
-			fprintf (stderr, "Unable to open device with S/N 0x%16LX\n", sn);
+			fprintf (stderr, "Unable to open device with S/N 0x%16llX\n", sn);
 			goto exit_error;
 		}
 	} else {
