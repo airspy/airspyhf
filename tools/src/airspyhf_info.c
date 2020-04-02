@@ -43,6 +43,7 @@ void print_receiver_data (struct airspyhf_device* pd)
 		airspyhf_read_partid_serialno_t read_partid_serialno;
 		unsigned nsrates;
 		char vstr[255]; // the size of buffer length has to be restricted to 1 byte
+		int32_t ppb;
 
 		if (airspyhf_board_partid_serialno_read(pd, &read_partid_serialno) == AIRSPYHF_SUCCESS) {
 			printf("S/N: 0x%08X%08X\n",
@@ -57,6 +58,12 @@ void print_receiver_data (struct airspyhf_device* pd)
 			printf("Firmware Version: %s\n", vstr);
 		else
 			fprintf(stderr, "airspyhf_version_string_read() failed\n");
+
+		if (airspyhf_get_calibration(pd, &ppb) == AIRSPYHF_SUCCESS) {
+			printf("Calibration = %d\n", ppb);
+		} else {
+			fprintf(stderr, "airspyhf_get_calibration() failed\n");
+		}
 
 		if (airspyhf_get_samplerates(pd, &nsrates, 0) == AIRSPYHF_SUCCESS) {
 			uint32_t *samplerates;
@@ -105,7 +112,7 @@ int main(const int argc, char * const *argv)
 
 		switch (opt) {
 		case 's':
-			if (sscanf(optarg, "0x%Lx", &sn) == 1) {
+			if (sscanf(optarg, "0x%llx", &sn) == 1) {
 				sn_msb = (uint32_t)(sn >> 32);
 				sn_lsb = (uint32_t)(sn & 0xFFFFFFFF);
 				printf("Receiver serial number to be opened: 0x%08X%08X\n",
@@ -150,7 +157,7 @@ int main(const int argc, char * const *argv)
 			print_receiver_data (dev);
 			return EXIT_SUCCESS;
 		} else {
-			fprintf (stderr, "Unable to open device with S/N 0x%16LX\n", sn);
+			fprintf (stderr, "Unable to open device with S/N 0x%16llX\n", sn);
 			return EXIT_FAILURE;
 		}
 	} else {
