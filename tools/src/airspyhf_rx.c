@@ -748,9 +748,11 @@ int main(int argc, char** argv)
 		char buf [64];
 		float average_rate_now = average_rate * 1e-6f;
 
-		snprintf(buf, sizeof(buf),"%2.3f", average_rate_now);
-		//average_rate_now = 9.5f;
-		fprintf(stderr, "Streaming at %5s MS/s\n", buf);
+		if (verbose) {
+			snprintf(buf, sizeof(buf),"%2.3f", average_rate_now);
+			//average_rate_now = 9.5f;
+			fprintf(stderr, "Streaming at %5s MS/s\n", buf);
+		}
 		if ((limit_num_samples == true) && (bytes_to_xfer == 0))
 			do_exit = true;
 		else
