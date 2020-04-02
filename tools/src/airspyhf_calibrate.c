@@ -41,7 +41,6 @@ void print_receiver_data (struct airspyhf_device* pd)
 {
 	if (pd) {
 		airspyhf_read_partid_serialno_t read_partid_serialno;
-		char vstr[255]; // the size of buffer length has to be restricted to 1 byte
 		int32_t ppb;
 
 		if (airspyhf_board_partid_serialno_read(pd, &read_partid_serialno) == AIRSPYHF_SUCCESS) {
@@ -95,14 +94,9 @@ int main(const int argc, char * const *argv)
 	// scan command line options
 	while( (opt = getopt(argc, argv, "?hs:c:")) != EOF ) {
 
-		uint32_t sn_msb;
-		uint32_t sn_lsb;
-
 		switch (opt) {
 		case 's':
 			if (sscanf(optarg, "0x%llx", &sn) == 1) {
-				sn_msb = (uint32_t)(sn >> 32);
-				sn_lsb = (uint32_t)(sn & 0xFFFFFFFF);
 				serial_number = 1;
 			} else {
 				fprintf(stderr, "argument error: '-%c %s'\n", opt, optarg);
