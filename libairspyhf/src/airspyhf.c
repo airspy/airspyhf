@@ -985,11 +985,11 @@ int ADDCALL airspyhf_close(airspyhf_device_t* device)
 		pthread_cond_destroy(&device->consumer_cv);
 		pthread_mutex_destroy(&device->consumer_mp);
 
-		airspyhf_open_exit(device);
 		free_transfers(device);
 		free(device->supported_samplerates);
 		free(device->samplerate_architectures);
 		iq_balancer_destroy(device->iq_balancer);
+		airspyhf_open_exit(device);
 		free(device);
 	}
 
