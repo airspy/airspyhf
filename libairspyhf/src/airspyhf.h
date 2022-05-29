@@ -122,6 +122,9 @@ extern ADDAPI void ADDCALL airspyhf_lib_version(airspyhf_lib_version_t* lib_vers
 extern ADDAPI int ADDCALL airspyhf_list_devices(uint64_t *serials, int count);
 extern ADDAPI int ADDCALL airspyhf_open(airspyhf_device_t** device);
 extern ADDAPI int ADDCALL airspyhf_open_sn(airspyhf_device_t** device, uint64_t serial_number);
+#ifndef _WIN32
+extern ADDAPI int ADDCALL airspyhf_open_file_descriptor(airspyhf_device_t** device, int fd);
+#endif
 extern ADDAPI int ADDCALL airspyhf_close(airspyhf_device_t* device);
 extern ADDAPI int ADDCALL airspyhf_get_output_size(airspyhf_device_t* device); /* Returns the number of IQ samples to expect in the callback */
 extern ADDAPI int ADDCALL airspyhf_start(airspyhf_device_t* device, airspyhf_sample_block_cb_fn callback, void* ctx);

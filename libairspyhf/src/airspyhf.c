@@ -741,6 +741,154 @@ static void airspyhf_open_device(airspyhf_device_t* device,
 	return;
 }
 
+#ifndef _WIN32
+static int airspyhf_open_init_file_descriptor(airspyhf_device_t** device, int fd)
+{
+	airspyhf_device_t* lib_device;
+	calibration_record_t record;
+	int libusb_error;
+	int result;
+
+	*device = NULL;
+
+	lib_device = (airspyhf_device_t*)calloc(1, sizeof(airspyhf_device_t));
+	if (lib_device == NULL)
+	{
+		return AIRSPYHF_ERROR;
+	}
+
+	libusb_error = libusb_set_option(lib_device->usb_context, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
+	if (libusb_error != 0)
+	{
+		free(lib_device);
+		return AIRSPYHF_ERROR;
+	}
+	libusb_error = libusb_init(&lib_device->usb_context);
+	if (libusb_error != 0)
+	{
+		free(lib_device);
+		return AIRSPYHF_ERROR;
+	}
+	libusb_error = libusb_wrap_sys_device(lib_device->usb_context, (intptr_t)fd, &lib_device->usb_device);
+	if (libusb_error != 0 || lib_device->usb_device == NULL)
+	{
+		libusb_exit(lib_device->usb_context);
+		free(lib_device);
+		return AIRSPYHF_ERROR;
+	}
+	libusb_error = libusb_set_configuration(lib_device->usb_device, 1);
+	if (libusb_error != 0)
+	{
+		libusb_exit(lib_device->usb_context);
+		free(lib_device);
+		return AIRSPYHF_ERROR;
+	}
+	libusb_error = libusb_claim_interface(lib_device->usb_device, 0);
+	if (libusb_error != 0)
+	{
+		libusb_exit(lib_device->usb_context);
+		free(lib_device);
+		return AIRSPYHF_ERROR;
+	}
+	libusb_error = libusb_set_interface_alt_setting(lib_device->usb_device, 0, 1);
+	if (libusb_error != 0)
+	{
+		libusb_exit(lib_device->usb_context);
+		free(lib_device);
+		return AIRSPYHF_ERROR;
+	}
+
+	lib_device->transfers = NULL;
+	lib_device->callback = NULL;
+	lib_device->transfer_count = 16;
+	lib_device->buffer_size = SAMPLES_TO_TRANSFER * sizeof(airspyhf_complex_int16_t);
+	lib_device->streaming = false;
+	lib_device->stop_requested = false;
+
+	lib_device->supported_samplerates = NULL;
+	lib_device->samplerate_architectures = NULL;
+
+	result = airspyhf_read_samplerates_from_fw(lib_device, &lib_device->supported_samplerate_count, 0);
+	if (result == AIRSPYHF_SUCCESS)
+	{
+		lib_device->supported_samplerates = (uint32_t*)malloc(lib_device->supported_samplerate_count * sizeof(uint32_t));
+		result = airspyhf_read_samplerates_from_fw(lib_device, lib_device->supported_samplerates, lib_device->supported_samplerate_count);
+		if (result == AIRSPYHF_SUCCESS)
+		{
+			lib_device->samplerate_architectures = (uint8_t*)malloc(lib_device->supported_samplerate_count * sizeof(uint8_t));
+			result = airspyhf_read_samplerate_architectures_from_fw(lib_device, lib_device->samplerate_architectures, lib_device->supported_samplerate_count);
+			if (result != AIRSPYHF_SUCCESS)
+			{
+				memset(lib_device->samplerate_architectures, 0, lib_device->supported_samplerate_count * sizeof(uint8_t)); // Asume Zero IF for all
+				result = AIRSPYHF_SUCCESS; // Clear this error for backward compatibility.
+			}
+		}
+		else
+		{
+			free(lib_device->supported_samplerates);
+			lib_device->supported_samplerates = NULL;
+		}
+	}
+
+	if (result != AIRSPYHF_SUCCESS)
+	{
+		// Assume one default sample rate with Zero IF
+
+		lib_device->supported_samplerate_count = 1;
+		lib_device->supported_samplerates = (uint32_t*)malloc(lib_device->supported_samplerate_count * sizeof(uint32_t));
+		lib_device->supported_samplerates[0] = DEFAULT_SAMPLERATE;
+
+		lib_device->samplerate_architectures = (uint8_t*)malloc(lib_device->supported_samplerate_count * sizeof(uint8_t));
+		lib_device->samplerate_architectures[0] = 0;
+	}
+
+	lib_device->current_samplerate = lib_device->supported_samplerates[0];
+	lib_device->is_low_if = lib_device->samplerate_architectures[0];
+
+	result = allocate_transfers(lib_device);
+	if (result != 0)
+	{
+		airspyhf_open_exit(lib_device);
+		free(lib_device);
+		return AIRSPYHF_ERROR;
+	}
+
+	pthread_cond_init(&lib_device->consumer_cv, NULL);
+	pthread_mutex_init(&lib_device->consumer_mp, NULL);
+
+	lib_device->freq_hz = 0;
+	lib_device->freq_khz = 0;
+	lib_device->freq_shift = 0;
+	lib_device->vec.re = 1.0f;
+	lib_device->vec.im = 0.0f;
+	lib_device->optimal_point = 0.0f;
+	lib_device->filter_gain = 1.0f;
+	lib_device->enable_dsp = 1;
+
+	if (airspyhf_config_read(lib_device, (uint8_t*)&record, sizeof(record)) == AIRSPYHF_SUCCESS)
+	{
+		if (record.magic_number == CALIBRATION_MAGIC)
+		{
+			lib_device->calibration_ppb = record.calibration_ppb;
+		}
+		else
+		{
+			lib_device->calibration_ppb = 0;
+		}
+	}
+	else
+	{
+		lib_device->calibration_ppb = 0;
+	}
+
+	lib_device->iq_balancer = iq_balancer_create(INITIAL_PHASE, INITIAL_AMPLITUDE);
+
+	*device = lib_device;
+
+	return AIRSPYHF_SUCCESS;
+}
+#endif
+
 int airspyhf_list_devices(uint64_t *serials, int count)
 {
 	libusb_device_handle* libusb_dev_handle;
@@ -948,6 +1096,16 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 
 	return AIRSPYHF_SUCCESS;
 }
+
+#ifndef _WIN32
+int ADDCALL airspyhf_open_file_descriptor(airspyhf_device_t** device, int fd)
+{
+	int result;
+
+	result = airspyhf_open_init_file_descriptor(device, fd);
+	return result;
+}
+#endif
 
 void ADDCALL airspyhf_lib_version(airspyhf_lib_version_t* lib_version)
 {
