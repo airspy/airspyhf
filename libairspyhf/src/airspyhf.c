@@ -433,12 +433,12 @@ static void airspyhf_libusb_transfer_callback(struct libusb_transfer* usb_transf
 
 		if (libusb_submit_transfer(usb_transfer) != 0)
 		{
-			device->streaming = false;
+			device->stop_requested = true;
 		}
 	}
 	else
 	{
-		device->streaming = false;
+		device->stop_requested = true;
 	}
 }
 
@@ -1170,7 +1170,7 @@ int ADDCALL airspyhf_start(airspyhf_device_t* device, airspyhf_sample_block_cb_f
 
 int ADDCALL airspyhf_is_streaming(airspyhf_device_t* device)
 {
-	return device->streaming;
+	return device->streaming && !device->stop_requested;
 }
 
 int ADDCALL airspyhf_stop(airspyhf_device_t* device)
