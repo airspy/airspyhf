@@ -107,6 +107,7 @@ typedef struct airspyhf_device
 	airspyhf_complex_float_t vec;
 	struct iq_balancer_t *iq_balancer;
 	uint32_t transfer_count;
+	int32_t transfer_live;
 	uint32_t buffer_size;
 	uint32_t dropped_buffers;
 	uint32_t dropped_buffers_queue[RAW_BUFFER_COUNT];
@@ -134,6 +135,7 @@ static int airspyhf_config_read(airspyhf_device_t* device, uint8_t *buffer, uint
 static int cancel_transfers(airspyhf_device_t* device)
 {
 	uint32_t transfer_index;
+	struct timeval canceltv = { 0, 50 };
 
 	if (device->transfers != NULL)
 	{
@@ -144,6 +146,10 @@ static int cancel_transfers(airspyhf_device_t* device)
 				libusb_cancel_transfer(device->transfers[transfer_index]);
 			}
 		}
+
+		for (transfer_index = 0; transfer_index < device->transfer_count && device->transfer_live > 0; transfer_index++)
+			libusb_handle_events_timeout_completed(device->usb_context, &canceltv, NULL);
+
 		return AIRSPYHF_SUCCESS;
 	}
 	else
@@ -261,6 +267,8 @@ static int prepare_transfers(airspyhf_device_t* device, const uint_fast8_t endpo
 			{
 				return AIRSPYHF_ERROR;
 			}
+			else
+				device->transfer_live++;
 		}
 		return AIRSPYHF_SUCCESS;
 	}
@@ -400,7 +408,8 @@ static void airspyhf_libusb_transfer_callback(struct libusb_transfer* usb_transf
 {
 	airspyhf_complex_int16_t *temp;
 	airspyhf_device_t* device = (airspyhf_device_t*) usb_transfer->user_data;
-
+	
+	device->transfer_live--;
 	if (!device->streaming || device->stop_requested)
 	{
 		return;
@@ -433,12 +442,14 @@ static void airspyhf_libusb_transfer_callback(struct libusb_transfer* usb_transf
 
 		if (libusb_submit_transfer(usb_transfer) != 0)
 		{
-			device->streaming = false;
+			device->stop_requested = true;
 		}
+		else
+			device->transfer_live ++;
 	}
 	else
 	{
-		device->streaming = false;
+		device->stop_requested = true;
 	}
 }
 
@@ -1170,7 +1181,7 @@ int ADDCALL airspyhf_start(airspyhf_device_t* device, airspyhf_sample_block_cb_f
 
 int ADDCALL airspyhf_is_streaming(airspyhf_device_t* device)
 {
-	return device->streaming;
+	return device->streaming && !device->stop_requested;
 }
 
 int ADDCALL airspyhf_stop(airspyhf_device_t* device)
@@ -1178,6 +1189,7 @@ int ADDCALL airspyhf_stop(airspyhf_device_t* device)
 	int result1, result2;
 	result1 = kill_io_threads(device);
 	result2 = airspyhf_set_receiver_mode(device, RECEIVER_MODE_OFF);
+	libusb_interrupt_event_handler(device->usb_context);
 
 	if (result2 != AIRSPYHF_SUCCESS)
 	{
