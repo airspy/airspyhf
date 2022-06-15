@@ -657,7 +657,7 @@ static void airspyhf_open_device(airspyhf_device_t* device,
 					if (serial_number_len == AIRSPYHF_SERIAL_SIZE && !memcmp(str_prefix_serial_airspyhf, serial_number, STR_PREFIX_SERIAL_AIRSPYHF_SIZE))
 					{
 						uint64_t serial = SERIAL_NUMBER_UNUSED;
-						// use same code to detemine device's serial number as in airspyhf_list_devices()
+						// use same code to determine device's serial number as in airspyhf_list_devices()
 						{
 							char *start, *end;
 							serial_number[AIRSPYHF_SERIAL_SIZE] = 0;
@@ -891,7 +891,7 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 			result = airspyhf_read_samplerate_architectures_from_fw(lib_device, lib_device->samplerate_architectures, lib_device->supported_samplerate_count);
 			if (result != AIRSPYHF_SUCCESS)
 			{
-				memset(lib_device->samplerate_architectures, 0, lib_device->supported_samplerate_count * sizeof(uint8_t)); // Asume Zero IF for all
+				memset(lib_device->samplerate_architectures, 0, lib_device->supported_samplerate_count * sizeof(uint8_t)); // Assume Zero IF for all
 				result = AIRSPYHF_SUCCESS; // Clear this error for backward compatibility.
 			}
 		}
