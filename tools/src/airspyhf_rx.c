@@ -538,7 +538,7 @@ int main(int argc, char** argv)
 	 * HF coverage between 9 kHz .. 31 MHz
 	 * VHF coverage between 60 .. 260 MHz
 	 */
-	if( freq ) {  // check frequncy value as specified on the command line
+	if( freq ) {  // check frequency value as specified on the command line
 
 		if( !( ((freq_hz >= 9000) && (freq_hz <= 31000000))
 									||
@@ -623,7 +623,7 @@ int main(int argc, char** argv)
 	}
 	free(supported_samplerates);
 
-	// if arrives here an unsupported sample rate was reqeusted
+	// if arrives here an unsupported sample rate was requested
 	if (wav_sample_per_sec == 0) {
 		fprintf(stderr, "argument error: unsupported sample rate: %d\n", sample_rate_val);
 		goto exit_failure;
