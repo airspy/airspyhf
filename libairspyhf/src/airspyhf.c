@@ -404,7 +404,7 @@ static void* consumer_threadproc(void *arg)
 	return NULL;
 }
 
-static void airspyhf_libusb_transfer_callback(struct libusb_transfer* usb_transfer)
+static void LIBUSB_CALL airspyhf_libusb_transfer_callback(struct libusb_transfer* usb_transfer)
 {
 	airspyhf_complex_int16_t *temp;
 	airspyhf_device_t* device = (airspyhf_device_t*) usb_transfer->user_data;
