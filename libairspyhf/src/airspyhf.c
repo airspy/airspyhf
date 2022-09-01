@@ -758,7 +758,7 @@ static void airspyhf_open_device_fd(airspyhf_device_t* device,
 	int fd) {
 	int result;
 
-	result libusb_wrap_sys_device(device->usb_context, (intptr_t)serial_number_val, &device->usb_device);
+	result libusb_wrap_sys_device(device->usb_context, (intptr_t)fd, &device->usb_device);
 	if (result != 0 || device->usb_device == NULL)
 	{
 		*ret = AIRSPYHF_ERROR;
