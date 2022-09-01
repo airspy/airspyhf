@@ -769,6 +769,7 @@ static void airspyhf_open_device_fd(airspyhf_device_t* device,
 	if (result != 0)
 	{
 		libusb_close(device->usb_device);
+		device->usb_device = NULL;
 		*ret = AIRSPYHF_ERROR;
 		return;
 	}
@@ -777,6 +778,7 @@ static void airspyhf_open_device_fd(airspyhf_device_t* device,
 	if (result != 0)
 	{
 		libusb_close(device->usb_device);
+		device->usb_device = NULL;
 		*ret = AIRSPYHF_ERROR;
 		return;
 	}
@@ -785,6 +787,7 @@ static void airspyhf_open_device_fd(airspyhf_device_t* device,
 	if (result != 0)
 	{
 		libusb_close(device->usb_device);
+		device->usb_device = NULL;
 		*ret = AIRSPYHF_ERROR;
 		return;
 	}
