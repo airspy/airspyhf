@@ -624,75 +624,83 @@ static void airspyhf_open_device(airspyhf_device_t* device,
 	libusb_dev_handle = &device->usb_device;
 	*libusb_dev_handle = NULL;
 
-#ifndef __ANDROID__
-	cnt = libusb_get_device_list(device->usb_context, &devices);
-	if (cnt < 0)
+	if (fd < 0)
 	{
-		*ret = AIRSPYHF_ERROR;
-		return;
-	}
-
-	i = 0;
-	while ((dev = devices[i++]) != NULL)
-	{
-		libusb_get_device_descriptor(dev, &device_descriptor);
-
-		if ((device_descriptor.idVendor == vid) &&
-			(device_descriptor.idProduct == pid))
+		cnt = libusb_get_device_list(device->usb_context, &devices);
+		if (cnt < 0)
 		{
-			if (serial_number_val != SERIAL_NUMBER_UNUSED)
+			*ret = AIRSPYHF_ERROR;
+			return;
+		}
+
+		i = 0;
+		while ((dev = devices[i++]) != NULL)
+		{
+			libusb_get_device_descriptor(dev, &device_descriptor);
+
+			if ((device_descriptor.idVendor == vid) &&
+				(device_descriptor.idProduct == pid))
 			{
-				serial_descriptor_index = device_descriptor.iSerialNumber;
-				if (serial_descriptor_index > 0)
+				if (serial_number_val != SERIAL_NUMBER_UNUSED)
 				{
-					if (libusb_open(dev, libusb_dev_handle) != 0)
+					serial_descriptor_index = device_descriptor.iSerialNumber;
+					if (serial_descriptor_index > 0)
 					{
-						*libusb_dev_handle = NULL;
-						continue;
-					}
-					dev_handle = *libusb_dev_handle;
-					serial_number_len = libusb_get_string_descriptor_ascii(dev_handle,
-						serial_descriptor_index,
-						serial_number,
-						sizeof(serial_number));
-
-					if (serial_number_len == AIRSPYHF_SERIAL_SIZE && !memcmp(str_prefix_serial_airspyhf, serial_number, STR_PREFIX_SERIAL_AIRSPYHF_SIZE))
-					{
-						uint64_t serial = SERIAL_NUMBER_UNUSED;
-						// use same code to determine device's serial number as in airspyhf_list_devices()
+						if (libusb_open(dev, libusb_dev_handle) != 0)
 						{
-							char *start, *end;
-							serial_number[AIRSPYHF_SERIAL_SIZE] = 0;
-							start = (char*)(serial_number + STR_PREFIX_SERIAL_AIRSPYHF_SIZE);
-							end = NULL;
-							serial = strtoull(start, &end, 16);
+							*libusb_dev_handle = NULL;
+							continue;
 						}
-						if (serial == serial_number_val)
+						dev_handle = *libusb_dev_handle;
+						serial_number_len = libusb_get_string_descriptor_ascii(dev_handle,
+							serial_descriptor_index,
+							serial_number,
+							sizeof(serial_number));
+
+						if (serial_number_len == AIRSPYHF_SERIAL_SIZE && !memcmp(str_prefix_serial_airspyhf, serial_number, STR_PREFIX_SERIAL_AIRSPYHF_SIZE))
 						{
-							result = libusb_set_configuration(dev_handle, 1);
-							if (result != 0)
+							uint64_t serial = SERIAL_NUMBER_UNUSED;
+							// use same code to determine device's serial number as in airspyhf_list_devices()
 							{
-								libusb_close(dev_handle);
-								*libusb_dev_handle = NULL;
-								continue;
+								char *start, *end;
+								serial_number[AIRSPYHF_SERIAL_SIZE] = 0;
+								start = (char*)(serial_number + STR_PREFIX_SERIAL_AIRSPYHF_SIZE);
+								end = NULL;
+								serial = strtoull(start, &end, 16);
 							}
-							result = libusb_claim_interface(dev_handle, 0);
-							if (result != 0)
+							if (serial == serial_number_val)
 							{
-								libusb_close(dev_handle);
-								*libusb_dev_handle = NULL;
-								continue;
-							}
+								result = libusb_set_configuration(dev_handle, 1);
+								if (result != 0)
+								{
+									libusb_close(dev_handle);
+									*libusb_dev_handle = NULL;
+									continue;
+								}
+								result = libusb_claim_interface(dev_handle, 0);
+								if (result != 0)
+								{
+									libusb_close(dev_handle);
+									*libusb_dev_handle = NULL;
+									continue;
+								}
 
-							result = libusb_set_interface_alt_setting(dev_handle, 0, 1);
-							if (result != 0)
+								result = libusb_set_interface_alt_setting(dev_handle, 0, 1);
+								if (result != 0)
+								{
+									libusb_close(dev_handle);
+									*libusb_dev_handle = NULL;
+									continue;
+								}
+
+								break;
+							}
+							else
 							{
 								libusb_close(dev_handle);
 								*libusb_dev_handle = NULL;
 								continue;
 							}
-
-							break;
 						}
 						else
 						{
@@ -701,75 +709,76 @@ static void airspyhf_open_device(airspyhf_device_t* device,
 							continue;
 						}
 					}
-					else
-					{
-						libusb_close(dev_handle);
-						*libusb_dev_handle = NULL;
-						continue;
-					}
 				}
-			}
-			else
-			{
-				if (libusb_open(dev, libusb_dev_handle) == 0)
+				else
 				{
-					dev_handle = *libusb_dev_handle;
-					result = libusb_set_configuration(dev_handle, 1);
-					if (result != 0)
+					if (libusb_open(dev, libusb_dev_handle) == 0)
 					{
-						libusb_close(dev_handle);
-						*libusb_dev_handle = NULL;
-						continue;
-					}
-					result = libusb_claim_interface(dev_handle, 0);
-					if (result != 0)
-					{
-						libusb_close(dev_handle);
-						*libusb_dev_handle = NULL;
-						continue;
-					}
+						dev_handle = *libusb_dev_handle;
+						result = libusb_set_configuration(dev_handle, 1);
+						if (result != 0)
+						{
+							libusb_close(dev_handle);
+							*libusb_dev_handle = NULL;
+							continue;
+						}
+						result = libusb_claim_interface(dev_handle, 0);
+						if (result != 0)
+						{
+							libusb_close(dev_handle);
+							*libusb_dev_handle = NULL;
+							continue;
+						}
 
-					result = libusb_set_interface_alt_setting(dev_handle, 0, 1);
-					if (result != 0)
-					{
-						libusb_close(dev_handle);
-						*libusb_dev_handle = NULL;
-						continue;
+						result = libusb_set_interface_alt_setting(dev_handle, 0, 1);
+						if (result != 0)
+						{
+							libusb_close(dev_handle);
+							*libusb_dev_handle = NULL;
+							continue;
+						}
+						break;
 					}
-					break;
 				}
 			}
 		}
+		libusb_free_device_list(devices, 1);
 	}
-	libusb_free_device_list(devices, 1);
-#else
-	// Open file descriptor
-	result = libusb_wrap_sys_device(device->usb_context, (intptr_t)serial_number_val, &device->usb_device);
-	if (result != 0) {
-		*ret = AIRSPYHF_ERROR;
-		return;
-	}
+	else
+	{
+		// Open file descriptor
+		result = libusb_wrap_sys_device(device->usb_context, (intptr_t)serial_number_val, &device->usb_device);
+		if (result != 0)
+		{
+			*ret = AIRSPYHF_ERROR;
+			return;
+		}
 
-	// Configure the interface
-	result = libusb_set_configuration(device->usb_device, 1);
-	if (result != 0) {
-		libusb_close(device->usb_context);
-		*ret = AIRSPYHF_ERROR;
-		return;
+		// Configure the interface
+		result = libusb_set_configuration(device->usb_device, 1);
+		if (result != 0)
+		{
+			libusb_close(device->usb_context);
+			*ret = AIRSPYHF_ERROR;
+			return;
+		}
+
+		result = libusb_claim_interface(device->usb_device, 0);
+		if (result != 0)
+		{
+			libusb_close(device->usb_context);
+			*ret = AIRSPYHF_ERROR;
+			return;
+		}
+
+		result = libusb_set_interface_alt_setting(device->usb_device, 0, 1);
+		if (result != 0)
+		{
+			libusb_close(device->usb_context);
+			*ret = AIRSPYHF_ERROR;
+			return;
+		}
 	}
-	result = libusb_claim_interface(device->usb_device, 0);
-	if (result != 0) {
-		libusb_close(device->usb_context);
-		*ret = AIRSPYHF_ERROR;
-		return;
-	}
-	result = libusb_set_interface_alt_setting(device->usb_device, 0, 1);
-	if (result != 0) {
-		libusb_close(device->usb_context);
-		*ret = AIRSPYHF_ERROR;
-		return;
-	}
-#endif
 
 	dev_handle = device->usb_device;
 	if (dev_handle == NULL)
