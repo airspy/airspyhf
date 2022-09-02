@@ -759,38 +759,38 @@ static void airspyhf_open_device_fd(airspyhf_device_t* device,
 	int result;
 
 	result = libusb_wrap_sys_device(device->usb_context, (intptr_t)fd, &device->usb_device);
-	if (result != 0 || device->usb_device == NULL)
-	{
-		*ret = AIRSPYHF_ERROR;
-		return;
-	}
+	// if (result != 0 || device->usb_device == NULL)
+	// {
+	// 	*ret = AIRSPYHF_ERROR;
+	// 	return;
+	// }
 
 	result = libusb_set_configuration(device->usb_device, 1);
-	if (result != 0)
-	{
-		libusb_close(device->usb_device);
-		device->usb_device = NULL;
-		*ret = AIRSPYHF_ERROR;
-		return;
-	}
+	// if (result != 0)
+	// {
+	// 	libusb_close(device->usb_device);
+	// 	device->usb_device = NULL;
+	// 	*ret = AIRSPYHF_ERROR;
+	// 	return;
+	// }
 	
 	result = libusb_claim_interface(device->usb_device, 0);
-	if (result != 0)
-	{
-		libusb_close(device->usb_device);
-		device->usb_device = NULL;
-		*ret = AIRSPYHF_ERROR;
-		return;
-	}
+	// if (result != 0)
+	// {
+	// 	libusb_close(device->usb_device);
+	// 	device->usb_device = NULL;
+	// 	*ret = AIRSPYHF_ERROR;
+	// 	return;
+	// }
 
 	result = libusb_set_interface_alt_setting(device->usb_device, 0, 1);
-	if (result != 0)
-	{
-		libusb_close(device->usb_device);
-		device->usb_device = NULL;
-		*ret = AIRSPYHF_ERROR;
-		return;
-	}
+	// if (result != 0)
+	// {
+	// 	libusb_close(device->usb_device);
+	// 	device->usb_device = NULL;
+	// 	*ret = AIRSPYHF_ERROR;
+	// 	return;
+	// }
 
 	*ret = AIRSPYHF_SUCCESS;
 	return;
