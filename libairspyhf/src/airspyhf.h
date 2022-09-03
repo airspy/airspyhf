@@ -64,7 +64,8 @@ extern "C"
 enum airspyhf_error
 {
 	AIRSPYHF_SUCCESS = 0,
-	AIRSPYHF_ERROR = -1
+	AIRSPYHF_ERROR = -1,
+	AIRSPYHF_UNSUPPORTED = -2
 };
 
 typedef struct {
