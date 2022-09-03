@@ -54,6 +54,7 @@ typedef int bool;
 
 #define SAMPLES_TO_TRANSFER (1024 * 2)
 #define SERIAL_NUMBER_UNUSED (0)
+#define FILE_DESCRIPTOR_UNUSED (-1)
 #define RAW_BUFFER_COUNT (8)
 #define AIRSPYHF_SERIAL_SIZE (28)
 
@@ -752,6 +753,56 @@ static void airspyhf_open_device(airspyhf_device_t* device,
 	return;
 }
 
+static void airspyhf_open_device_fd(airspyhf_device_t* device,
+	int* ret,
+	int fd) {
+	int result = -1;
+
+#ifndef _WIN32
+	result = libusb_wrap_sys_device(device->usb_context, (intptr_t)fd, &device->usb_device);
+#else
+	device->usb_device = NULL;
+	*ret = AIRSPYHF_UNSUPPORTED;
+	return;
+#endif
+
+	if (result != 0 || device->usb_device == NULL)
+	{
+		*ret = AIRSPYHF_ERROR;
+		return;
+	}
+
+	result = libusb_set_configuration(device->usb_device, 1);
+	if (result != 0)
+	{
+		libusb_close(device->usb_device);
+		device->usb_device = NULL;
+		*ret = AIRSPYHF_ERROR;
+		return;
+	}
+	
+	result = libusb_claim_interface(device->usb_device, 0);
+	if (result != 0)
+	{
+		libusb_close(device->usb_device);
+		device->usb_device = NULL;
+		*ret = AIRSPYHF_ERROR;
+		return;
+	}
+
+	result = libusb_set_interface_alt_setting(device->usb_device, 0, 1);
+	if (result != 0)
+	{
+		libusb_close(device->usb_device);
+		device->usb_device = NULL;
+		*ret = AIRSPYHF_ERROR;
+		return;
+	}
+
+	*ret = AIRSPYHF_SUCCESS;
+	return;
+}
+
 int airspyhf_list_devices(uint64_t *serials, int count)
 {
 	libusb_device_handle* libusb_dev_handle;
@@ -770,6 +821,11 @@ int airspyhf_list_devices(uint64_t *serials, int count)
 	{
 		memset(serials, 0, sizeof(uint64_t) * count);
 	}
+
+#ifdef __ANDROID__
+	// LibUSB does not support device discovery on android
+	libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
+#endif
 
 	if (libusb_init(&context) != 0)
 	{
@@ -835,7 +891,7 @@ int airspyhf_list_devices(uint64_t *serials, int count)
 	return output_count;
 }
 
-static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number)
+static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number, int fd)
 {
 	airspyhf_device_t* lib_device;
 	calibration_record_t record;
@@ -850,6 +906,11 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 		return AIRSPYHF_ERROR;
 	}
 
+#ifdef __ANDROID__
+	// LibUSB does not support device discovery on android
+	libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
+#endif
+
 	libusb_error = libusb_init(&lib_device->usb_context);
 	if (libusb_error != 0)
 	{
@@ -857,11 +918,18 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 		return AIRSPYHF_ERROR;
 	}
 
-	airspyhf_open_device(lib_device,
-		&result,
-		airspyhf_usb_vid,
-		airspyhf_usb_pid,
-		serial_number);
+	if (fd == FILE_DESCRIPTOR_UNUSED) {
+		airspyhf_open_device(lib_device,
+			&result,
+			airspyhf_usb_vid,
+			airspyhf_usb_pid,
+			serial_number);
+	}
+	else {
+		airspyhf_open_device_fd(lib_device,
+			&result,
+			fd);
+	}
 
 	if (lib_device->usb_device == NULL)
 	{
@@ -971,7 +1039,15 @@ int ADDCALL airspyhf_open_sn(airspyhf_device_t** device, uint64_t serial_number)
 {
 	int result;
 
-	result = airspyhf_open_init(device, serial_number);
+	result = airspyhf_open_init(device, serial_number, FILE_DESCRIPTOR_UNUSED);
+	return result;
+}
+
+int ADDCALL airspyhf_open_fd(airspyhf_device_t** device, int fd)
+{
+	int result;
+
+	result = airspyhf_open_init(device, SERIAL_NUMBER_UNUSED, fd);
 	return result;
 }
 
@@ -979,7 +1055,7 @@ int ADDCALL airspyhf_open(airspyhf_device_t** device)
 {
 	int result;
 
-	result = airspyhf_open_init(device, SERIAL_NUMBER_UNUSED);
+	result = airspyhf_open_init(device, SERIAL_NUMBER_UNUSED, FILE_DESCRIPTOR_UNUSED);
 	return result;
 }
 
