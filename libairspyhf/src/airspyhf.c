@@ -756,7 +756,7 @@ static void airspyhf_open_device(airspyhf_device_t* device,
 static void airspyhf_open_device_fd(airspyhf_device_t* device,
 	int* ret,
 	int fd) {
-	int result;
+	int result = -1;
 
 #ifndef _WIN32
 	result = libusb_wrap_sys_device(device->usb_context, (intptr_t)fd, &device->usb_device);
