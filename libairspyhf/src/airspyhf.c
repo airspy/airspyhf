@@ -97,9 +97,10 @@ typedef struct airspyhf_device
 	uint32_t *supported_samplerates;
 	uint8_t *samplerate_architectures;
 	volatile uint32_t current_samplerate;
-	volatile uint32_t freq_hz;
+	volatile double freq_hz;
 	volatile uint32_t freq_khz;
-	volatile int32_t freq_shift;
+	volatile double freq_delta_hz;
+	volatile double freq_shift;
 	volatile int32_t calibration_ppb;
 	volatile float optimal_point;
 	uint8_t enable_dsp;
@@ -998,6 +999,7 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 
 	lib_device->freq_hz = 0;
 	lib_device->freq_khz = 0;
+	lib_device->freq_delta_hz = 0;
 	lib_device->freq_shift = 0;
 	lib_device->vec.re = 1.0f;
 	lib_device->vec.im = 0.0f;
@@ -1201,7 +1203,7 @@ int ADDCALL airspyhf_set_samplerate(airspyhf_device_t* device, uint32_t samplera
 		device->filter_gain = 1.0;
 	}
 
-	airspyhf_set_freq(device, device->freq_hz);
+	airspyhf_set_freq_double(device, device->freq_hz);
 	
 	return AIRSPYHF_SUCCESS;
 }
@@ -1265,7 +1267,10 @@ int ADDCALL airspyhf_stop(airspyhf_device_t* device)
 	int result1, result2;
 	result1 = kill_io_threads(device);
 	result2 = airspyhf_set_receiver_mode(device, RECEIVER_MODE_OFF);
+
+#ifndef _WIN32
 	libusb_interrupt_event_handler(device->usb_context);
+#endif
 
 	if (result2 != AIRSPYHF_SUCCESS)
 	{
@@ -1274,23 +1279,27 @@ int ADDCALL airspyhf_stop(airspyhf_device_t* device)
 	return result1;
 }
 
+
 int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 {
-	const int tuning_alignment = 1000;
+	return airspyhf_set_freq_double(device, freq_hz);
+}
 
+int ADDCALL airspyhf_set_freq_double(airspyhf_device_t* device, const double freq_hz)
+{
 	int result;
 	uint8_t buf[4];
+	double if_shift = (device->enable_dsp && !device->is_low_if) ? DEFAULT_IF_SHIFT : 0;
+	double adjusted_freq_hz = freq_hz * (1.0e9 + device->calibration_ppb) * 1.0e-9;
 	uint32_t lo_low_khz = device->is_low_if ? MIN_LOW_IF_LO : MIN_ZERO_IF_LO;
-	uint32_t if_shift = (device->enable_dsp && !device->is_low_if) ? DEFAULT_IF_SHIFT : 0;
-	uint32_t adjusted_freq_hz = (uint32_t) ((int64_t) freq_hz * (int64_t)(1000000000LL + device->calibration_ppb) / 1000000000LL);
-	uint32_t freq_khz = MAX(lo_low_khz, (adjusted_freq_hz + if_shift + tuning_alignment / 2) / tuning_alignment);
+	uint32_t freq_khz = MAX(lo_low_khz, (int32_t)round((adjusted_freq_hz + if_shift) * 1e-3));
 
 	if (device->freq_khz != freq_khz)
 	{
-		buf[0] = (uint8_t) ((freq_khz >> 24) & 0xff);
-		buf[1] = (uint8_t) ((freq_khz >> 16) & 0xff);
-		buf[2] = (uint8_t) ((freq_khz >> 8) & 0xff);
-		buf[3] = (uint8_t) ((freq_khz) & 0xff);
+		buf[0] = (uint8_t)((freq_khz >> 24) & 0xff);
+		buf[1] = (uint8_t)((freq_khz >> 16) & 0xff);
+		buf[2] = (uint8_t)((freq_khz >> 8) & 0xff);
+		buf[3] = (uint8_t)((freq_khz) & 0xff);
 
 		result = libusb_control_transfer(
 			device->usb_device,
@@ -1298,11 +1307,9 @@ int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 			AIRSPYHF_SET_FREQ,
 			0,
 			0,
-			(unsigned char*) &buf,
+			(unsigned char*)&buf,
 			sizeof(buf),
 			0);
-
-		iq_balancer_set_optimal_point(device->iq_balancer, device->optimal_point);
 
 		if (result < sizeof(buf))
 		{
@@ -1310,10 +1317,27 @@ int ADDCALL airspyhf_set_freq(airspyhf_device_t* device, const uint32_t freq_hz)
 		}
 
 		device->freq_khz = freq_khz;
+
+		result = libusb_control_transfer(
+			device->usb_device,
+			LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+			AIRSPYHF_GET_FREQ_DELTA,
+			0,
+			0,
+			(unsigned char*)&buf,
+			sizeof(buf),
+			0);
+
+		if (result == sizeof(buf))
+		{
+			device->freq_delta_hz = (((int8_t)buf[3] << 16) | (buf[2] << 8) | buf[1]) * 1e3 / (1 << buf[0]);
+		}
+
+		iq_balancer_set_optimal_point(device->iq_balancer, device->optimal_point);
 	}
 
 	device->freq_hz = freq_hz;
-	device->freq_shift = adjusted_freq_hz - freq_khz * 1000;
+	device->freq_shift = adjusted_freq_hz - freq_khz * 1e3 + device->freq_delta_hz;
 
 	return AIRSPYHF_SUCCESS;
 }
@@ -1403,7 +1427,7 @@ int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device)
 int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb)
 {
 	device->calibration_ppb = ppb;
-	return airspyhf_set_freq(device, device->freq_hz);
+	return airspyhf_set_freq_double(device, device->freq_hz);
 }
 
 int ADDCALL airspyhf_set_optimal_iq_correction_point(airspyhf_device_t* device, float w)
