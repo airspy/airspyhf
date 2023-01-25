@@ -102,6 +102,7 @@ typedef struct airspyhf_device
 	volatile double freq_delta_hz;
 	volatile double freq_shift;
 	volatile int32_t calibration_ppb;
+	volatile int32_t calibration_vctcxo;
 	volatile float optimal_point;
 	uint8_t enable_dsp;
 	uint8_t is_low_if;
@@ -127,6 +128,7 @@ typedef struct calibration_record
 {
 	uint32_t magic_number;
 	int32_t calibration_ppb;
+	int32_t calibration_vctcxo;
 } calibration_record_t;
 
 static const uint16_t airspyhf_usb_vid = 0x03EB;
@@ -1012,15 +1014,18 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 		if (record.magic_number == CALIBRATION_MAGIC)
 		{
 			lib_device->calibration_ppb = record.calibration_ppb;
+			airspyhf_set_vctcxo_calibration(lib_device, record.calibration_vctcxo);
 		}
 		else
 		{
 			lib_device->calibration_ppb = 0;
+			lib_device->calibration_vctcxo = 0;
 		}
 	}
 	else
 	{
 		lib_device->calibration_ppb = 0;
+		lib_device->calibration_vctcxo = 0;
 	}
 
 	lib_device->iq_balancer = iq_balancer_create(INITIAL_PHASE, INITIAL_AMPLITUDE);
@@ -1405,11 +1410,51 @@ int ADDCALL airspyhf_get_calibration(airspyhf_device_t* device, int32_t* ppb)
 	return AIRSPYHF_ERROR;
 }
 
+int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb)
+{
+	device->calibration_ppb = ppb;
+	return airspyhf_set_freq_double(device, device->freq_hz);
+}
+
+int ADDCALL airspyhf_get_vctcxo_calibration(airspyhf_device_t* device, uint16_t* vc)
+{
+	if (vc)
+	{
+		*vc = device->calibration_vctcxo;
+		return AIRSPYHF_SUCCESS;
+	}
+
+	return AIRSPYHF_ERROR;
+}
+
+int ADDCALL airspyhf_set_vctcxo_calibration(airspyhf_device_t* device, uint16_t vc)
+{
+	int result;
+	device->calibration_vctcxo = vc;
+
+	result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+		AIRSPYHF_SET_VCTCXO_CALIBRATION,
+		vc,
+		0,
+		NULL,
+		0,
+		0);
+
+	if (result < 0)
+	{
+		return AIRSPYHF_ERROR;
+	}
+	return AIRSPYHF_SUCCESS;
+}
+
 int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device)
 {
 	calibration_record_t record;
 	record.magic_number = CALIBRATION_MAGIC;
 	record.calibration_ppb = device->calibration_ppb;
+	record.calibration_vctcxo = device->calibration_vctcxo;
 
 	if (airspyhf_is_streaming(device))
 	{
@@ -1422,12 +1467,6 @@ int ADDCALL airspyhf_flash_calibration(airspyhf_device_t* device)
 	}
 
 	return AIRSPYHF_SUCCESS;
-}
-
-int ADDCALL airspyhf_set_calibration(airspyhf_device_t* device, int32_t ppb)
-{
-	device->calibration_ppb = ppb;
-	return airspyhf_set_freq_double(device, device->freq_hz);
 }
 
 int ADDCALL airspyhf_set_optimal_iq_correction_point(airspyhf_device_t* device, float w)
