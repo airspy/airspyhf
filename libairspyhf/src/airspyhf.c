@@ -52,7 +52,7 @@ typedef int bool;
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-#define SAMPLES_TO_TRANSFER (1024 * 2)
+#define SAMPLES_TO_TRANSFER (1024 * 16)
 #define SERIAL_NUMBER_UNUSED (0)
 #define FILE_DESCRIPTOR_UNUSED (-1)
 #define RAW_BUFFER_COUNT (8)
