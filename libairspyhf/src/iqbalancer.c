@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016-2018, Youssef Touil <youssef@airspy.com>
+Copyright (c) 2016-2023, Youssef Touil <youssef@airspy.com>
 Copyright (c) 2018, Leif Asbrink <leif@sm5bsz.com>
 
 All rights reserved.

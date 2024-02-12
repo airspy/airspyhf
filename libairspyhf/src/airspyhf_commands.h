@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2013-2017, Youssef Touil <youssef@airspy.com>
+Copyright (c) 2013-2023, Youssef Touil <youssef@airspy.com>
 Copyright (c) 2013-2017, Ian Gilmour <ian@sdrsharp.com>
 Copyright (c) 2013-2017, Benjamin Vernoux <bvernoux@airspy.com>
 
@@ -32,7 +32,7 @@ typedef enum
     RECEIVER_MODE_ON                    = 1
 } receiver_mode_t;
 
-#define AIRSPYHF_CMD_MAX (17)
+#define AIRSPYHF_CMD_MAX (22)
 typedef enum
 {
     AIRSPYHF_INVALID                      = 0,
@@ -45,14 +45,19 @@ typedef enum
     AIRSPYHF_GET_SERIALNO_BOARDID         = 7,
 	AIRSPYHF_SET_USER_OUTPUT              = 8,
 	AIRSPYHF_GET_VERSION_STRING           = 9,
-	AIRSPYHF_SET_HF_AGC                   = 10,
-	AIRSPYHF_SET_HF_AGC_THRESHOLD         = 11,
-	AIRSPYHF_SET_HF_ATT                   = 12,
-	AIRSPYHF_SET_HF_LNA                   = 13,
+	AIRSPYHF_SET_AGC                      = 10,
+	AIRSPYHF_SET_AGC_THRESHOLD            = 11,
+	AIRSPYHF_SET_ATT                      = 12,
+	AIRSPYHF_SET_LNA                      = 13,
 	AIRSPYHF_GET_SAMPLERATE_ARCHITECTURES = 14,
     AIRSPYHF_GET_FILTER_GAIN              = 15,
     AIRSPYHF_GET_FREQ_DELTA               = 16,
-    AIRSPYHF_SET_VCTCXO_CALIBRATION       = AIRSPYHF_CMD_MAX,
+    AIRSPYHF_SET_VCTCXO_CALIBRATION       = 17,
+    AIRSPYHF_SET_FRONTEND_OPTIONS         = 18,
+    AIRSPYHF_GET_ATT_STEPS                = 19,
+    AIRSPYHF_GET_BIAS_TEE_COUNT           = 20,
+    AIRSPYHF_GET_BIAS_TEE_NAME            = 21,
+    AIRSPYHF_SET_BIAS_TEE                 = AIRSPYHF_CMD_MAX
 } airspyhf_vendor_request;
 
 #endif

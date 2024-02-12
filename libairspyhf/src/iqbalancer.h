@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016-2018, Youssef Touil <youssef@airspy.com>
+Copyright (c) 2016-2023, Youssef Touil <youssef@airspy.com>
 Copyright (c) 2018, Leif Asbrink <leif@sm5bsz.com>
 
 All rights reserved.
@@ -49,7 +49,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 	#define FFTOverlap 1
 	#define CorrelationIntegration 4
 #else
-	#define BuffersToSkip 1
+	#define BuffersToSkip 2
 	#define FFTIntegration 4
 	#define FFTOverlap 2
 	#define CorrelationIntegration 16
