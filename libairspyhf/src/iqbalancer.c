@@ -194,23 +194,33 @@ static void fft(complex_t *buffer, int length)
 	}
 }
 
-static void cancel_dc(struct iq_balancer_t *iq_balancer, complex_t* iq, int length)
+static void cancel_dc(struct iq_balancer_t *iq_balancer, complex_t* iq, int length, uint8_t skip_eval)
 {
 	int i;
 	float iavg = iq_balancer->iavg;
 	float qavg = iq_balancer->qavg;
 
-	for (i = 0; i < length; i++)
+	if (skip_eval)
 	{
-		iavg += DcTimeConst * (iq[i].re - iavg);
-		qavg += DcTimeConst * (iq[i].im - qavg);
-
-		iq[i].re -= iavg;
-		iq[i].im -= qavg;
+		for (i = 0; i < length; i++)
+		{
+			iq[i].re -= iavg;
+			iq[i].im -= qavg;
+		}
 	}
+	else
+	{
+		for (i = 0; i < length; i++)
+		{
+			iavg += DcTimeConst * (iq[i].re - iavg);
+			qavg += DcTimeConst * (iq[i].im - qavg);
 
-	iq_balancer->iavg = iavg;
-	iq_balancer->qavg = qavg;
+			iq[i].re -= iavg;
+			iq[i].im -= qavg;
+		}
+		iq_balancer->iavg = iavg;
+		iq_balancer->qavg = qavg;
+	}
 }
 
 static float adjust_benchmark(struct iq_balancer_t *iq_balancer, complex_t *iq, float phase, float amplitude, int skip_power_calculation)
@@ -459,27 +469,30 @@ static void adjust_phase_amplitude(struct iq_balancer_t *iq_balancer, complex_t*
 	iq_balancer->last_amplitude = iq_balancer->amplitude;
 }
 
-void ADDCALL iq_balancer_process(struct iq_balancer_t *iq_balancer, complex_t* iq, int length)
+void ADDCALL iq_balancer_process(struct iq_balancer_t *iq_balancer, complex_t* iq, int length, uint8_t skip_eval)
 {
 	int count;
 
-	cancel_dc(iq_balancer, iq, length);
+	cancel_dc(iq_balancer, iq, length, skip_eval);
 
-	count = WorkingBufferLength - iq_balancer->working_buffer_pos;
-	if (count >= length)
+	if (!skip_eval)
 	{
-		count = length;
-	}
-	memcpy(iq_balancer->working_buffer + iq_balancer->working_buffer_pos, iq, count * sizeof(complex_t));
-	iq_balancer->working_buffer_pos += count;
-	if (iq_balancer->working_buffer_pos >= WorkingBufferLength)
-	{
-		iq_balancer->working_buffer_pos = 0;
-
-		if (++iq_balancer->skipped_buffers > iq_balancer->buffers_to_skip)
+		count = WorkingBufferLength - iq_balancer->working_buffer_pos;
+		if (count >= length)
 		{
-			iq_balancer->skipped_buffers = 0;
-			estimate_imbalance(iq_balancer, iq_balancer->working_buffer, WorkingBufferLength);
+			count = length;
+		}
+		memcpy(iq_balancer->working_buffer + iq_balancer->working_buffer_pos, iq, count * sizeof(complex_t));
+		iq_balancer->working_buffer_pos += count;
+		if (iq_balancer->working_buffer_pos >= WorkingBufferLength)
+		{
+			iq_balancer->working_buffer_pos = 0;
+
+			if (++iq_balancer->skipped_buffers > iq_balancer->buffers_to_skip)
+			{
+				iq_balancer->skipped_buffers = 0;
+				estimate_imbalance(iq_balancer, iq_balancer->working_buffer, WorkingBufferLength);
+			}
 		}
 	}
 
