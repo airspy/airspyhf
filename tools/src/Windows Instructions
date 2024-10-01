@@ -1,0 +1,17 @@
+Windows Instructions:
+
+After you have built airspyhf.dll you can build the tools to verify everything is working:
+
+1. Download https://github.com/msys2/msys2-installer/releases/download/2024-07-27/msys2-x86_64-20240727.exe
+2. Install it and open a `MINGW64` terminal
+3. Get compiler : `pacman -S clang64/mingw-w64-clang-x86_64-clang clang64/mingw-w64-clang-x86_64-gcc-compat` in the terminal. Answer Y to install
+4. type `gcc --version` in terminal to check installed gcc ok
+5. Now open the `MSYS2 CLANG64` terminal
+6. In the terminal cd to the folder where the \tools\src are, i.e. cd /c/Users/User/airspyhf/tools/src
+7. Build the exe's:
+
+gcc -I../../libairspyhf/src -L../../libairspyhf/x64/Release -lairspyhf airspyhf_info.c -o info
+gcc -I../../libairspyhf/src -L../../libairspyhf/x64/Release -lairspyhf airspyhf_calibrate.c -o calibrate
+gcc -I../../libairspyhf/src -L../../libairspyhf/x64/Release -lairspyhf airspyhf_rx.c -o rx
+
+Before you run these exe's you need to copy airspyhf.dll and libusb-1.0.dll from the download and build of these tools earlier into the tools\src folder.
