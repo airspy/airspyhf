@@ -69,6 +69,13 @@ Debug version:
 
 `sudo ldconfig`
 
+Users of non-Debian-based distrbutions (Fedora, etc), or distributions that don't use the plugdev group may need to modify the udev rules file to use the [uaccess paradigm](https://github.com/systemd/systemd/issues/4288). This can be performed by editing the udev rules file:
+
+`sudo nano /etc/udev/rules.d/52-airspyhf.rules` 
+
+... and replacing the contents with: `ATTR{idVendor}=="03eb", ATTR{idProduct}=="800c", SYMLINK+="airspyhf-%k", TAG+="uaccess"`
+Device access should then work for users logging in locally, but may not work for ssh logins, or systemd services.
+
 ## Clean CMake temporary files/dirs:
 
 `cd airspyhf-master/build`
