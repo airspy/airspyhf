@@ -61,7 +61,8 @@ Debug version:
 
 `cd build`
 
-`cmake ../ -DINSTALL_UDEV_RULES=ON`
+`cmake ../ -DINSTALL_UDEV_RULES=ON` or
+`cmake ../ -REMOTE_USER_RULES=ON` (see below)
 
 `make`
 
@@ -69,12 +70,9 @@ Debug version:
 
 `sudo ldconfig`
 
-Users of non-Debian-based distrbutions (Fedora, etc), or distributions that don't use the plugdev group may need to modify the udev rules file to use the [uaccess paradigm](https://github.com/systemd/systemd/issues/4288). This can be performed by editing the udev rules file:
-
-`sudo nano /etc/udev/rules.d/52-airspyhf.rules` 
-
-... and replacing the contents with: `ATTR{idVendor}=="03eb", ATTR{idProduct}=="800c", SYMLINK+="airspyhf-%k", TAG+="uaccess"`
-Device access should then work for users logging in locally, but may not work for ssh logins, or systemd services.
+Note: Users of Linux systems, that employ their AirspyHF+ for networked operation require an extra level of security for their
+device. By using the cmake option `-DREMOTE_USER_RULES=ON` the build process will dynamically change and install the udev rules
+such that the device is created with MODE=660, GROUP=plugdev, rather than the default `uaccess` paradigm.
 
 ## Clean CMake temporary files/dirs:
 
