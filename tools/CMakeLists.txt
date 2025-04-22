@@ -68,7 +68,21 @@ endif()
 ########################################################################
 # Install udev rules
 ########################################################################
+set(RULE_TEXT "ATTR{idVendor}==\"03eb\", ATTR{idProduct}==\"800c\", SYMLINK+=\"airspyhf-%k\", TAGS+=\"uaccess\"")
+set(REMOTE_USER_GROUP "plugdev")
+option(REMOTE_USER_RULES "Install udev rules for remote usage" OFF)
 option(INSTALL_UDEV_RULES "Install udev rules for AirSpy HF+" OFF)
+
+if (REMOTE_USER_RULES)
+    string (REPLACE "TAGS+=\"uaccess\"" "MODE=660, GROUP=${REMOTE_USER_GROUP}" RULE_TEXT ${RULE_TEXT})
+    set (INSTALL_UDEV_RULES ON)
+    message (STATUS "Udev rules created for remote users using GROUP=${REMOTE_USER_GROUP}")
+else (REMOTE_USER_RULES)
+    message (STATUS "Remote user rules not being used, set with -DREMOTE_USER_RULES=ON")
+endif (REMOTE_USER_RULES)
+
+file (WRITE "52-airspyhf.rules" "${RULE_TEXT}")
+
 if (INSTALL_UDEV_RULES)
     install (
         FILES 52-airspyhf.rules
