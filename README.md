@@ -62,7 +62,7 @@ Debug version:
 `cd build`
 
 `cmake ../ -DINSTALL_UDEV_RULES=ON` or
-`cmake ../ -REMOTE_USER_RULES=ON` (see below)
+`cmake ../ -REMOTE_USER_RULES=ON|OFF` (see below)
 
 `make`
 
@@ -73,6 +73,9 @@ Debug version:
 Note: Users of Linux systems, that employ their AirspyHF+ for networked operation require an extra level of security for their
 device. By using the cmake option `-DREMOTE_USER_RULES=ON` the build process will dynamically change and install the udev rules
 such that the device is created with MODE=660, GROUP=plugdev, rather than the default `uaccess` paradigm.
+
+Users can reverse this to the default `uaccess` setting by using `-DREMOTE_USER_RULES=OFF`, but also including
+`-DINSTALL_UDEV_RULES=ON` to re-install it.
 
 ## Clean CMake temporary files/dirs:
 
