@@ -62,7 +62,7 @@ Debug version:
 `cd build`
 
 `cmake ../ -DINSTALL_UDEV_RULES=ON` or
-`cmake ../ -REMOTE_USER_RULES=ON|OFF` (see below)
+`cmake ../ -USE_UACCESS_RULES=ON` (see below)
 
 `make`
 
@@ -70,9 +70,11 @@ Debug version:
 
 `sudo ldconfig`
 
-Note: Users of Linux systems, that employ their AirspyHF+ for networked operation require an extra level of security for their device. By using the cmake option `-DREMOTE_USER_RULES=ON` the build process will dynamically change and install the udev rules such that the device is created with MODE=660, GROUP=plugdev, rather than the default `uaccess` paradigm.
+Note: The default installation is designed for networked systems, such as SpyServers, that require an extra level of security to access their device. As such, using the cmake option `-DINSTALL_UDEV_RULES=ON` will allow read/write permissions only for the logged in user and those that are included in the `plugdev` group. If this default MODE/GROUP paradigm is employed, it is up to the system admistrator to ensure that the `plugdev` group is both created, and that all local and/or remote users are subsequently added to that group. 
 
-Users can reverse this to the default `uaccess` setting by using `-DREMOTE_USER_RULES=OFF`, but also including `-DINSTALL_UDEV_RULES=ON` to re-install it.
+Conversely, Users of stand-alone non-Debian-based Linux systems may require less stringent `uaccess` udev rules in order for applications to 'see' the device. By using the cmake option `-DUSE_UACCESS_RULES=ON` the build process will dynamically change and install the udev rules such that the device is created using the `uaccess` paradigm, instead of the default MODE/GROUP.
+
+This can later be reversed to use the default MODE/GROUP paradigm, if needed, by rebuilding with the `-DUSE_UACCESS_RULES=OFF -DINSTALL_UDEV_RULES=ON` options to restore and re-install it.
 
 ## Clean CMake temporary files/dirs:
 
