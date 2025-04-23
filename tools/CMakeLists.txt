@@ -84,6 +84,28 @@ endif (USE_UACCESS_RULES)
 file (WRITE "52-airspyhf.rules" "${RULE_TEXT}")
 
 if (INSTALL_UDEV_RULES)
+
+#   Create REMOTE_USER_GROUP if it doesn't already exist
+    if (NOT (USE_UACCESS_RULES))
+        if (TARGET ${REMOTE_USER_GROUP})
+            message (STATUS "Group ${REMOTE_USER_GROUP} already exists")
+        else (TARGET ${REMOTE_USER_GROUP})
+            if (NOT (EXISTS "/etc/sysusers.d/${REMOTE_USER_GROUP}.conf"))
+                file (WRITE "${REMOTE_USER_GROUP}.conf" "g ${REMOTE_USER_GROUP} -")
+                install (
+                    FILES ${REMOTE_USER_GROUP}.conf
+                    DESTINATION "/etc/sysusers.d"
+                    COMPONENT "udev"
+                )
+                install (
+                    CODE "execute_process (COMMAND systemd-sysusers)"
+                )
+                message (STATUS "Group ${REMOTE_USER_GROUP} did not exist and will be created during the install process")
+            endif (NOT (EXISTS "/etc/sysusers.d/${REMOTE_USER_GROUP}.conf"))
+        endif (TARGET ${REMOTE_USER_GROUP})
+    endif (NOT (USE_UACCESS_RULES))
+
+#   Install rules file
     install (
         FILES 52-airspyhf.rules
         DESTINATION "/etc/udev/rules.d"
