@@ -62,7 +62,8 @@ Debug version:
 `cd build`
 
 `cmake ../ -DINSTALL_UDEV_RULES=ON` or
-`cmake ../ -USE_UACCESS_RULES=ON` (see below)
+`cmake ../ -USE_UACCESS_RULES=ON` or
+`cmake ../` (see usage notes below)
 
 `make`
 
@@ -75,6 +76,8 @@ Note: The default installation is designed for networked systems, such as SpySer
 Conversely, Users of stand-alone non-Debian-based Linux systems may require less stringent `uaccess` udev rules in order for applications to 'see' the device. By using the cmake option `-DUSE_UACCESS_RULES=ON` the build process will dynamically change and install the udev rules such that the device is created using the `uaccess` paradigm, instead of the default MODE/GROUP.
 
 This can later be reversed to use the default MODE/GROUP paradigm, if needed, by rebuilding with the `-DUSE_UACCESS_RULES=OFF -DINSTALL_UDEV_RULES=ON` options to restore and re-install it.
+
+MacOS deals with communicating with USB devices much differently than Linux. Therefore none of these udev options are required when running `cmake` on Macs.
 
 ## Clean CMake temporary files/dirs:
 
