@@ -70,7 +70,7 @@ Debug version:
 
 `sudo ldconfig`
 
-Note: The default installation is designed for networked systems, such as SpyServers, that require an extra level of security to access their device. As such, using the cmake option `-DINSTALL_UDEV_RULES=ON` will allow read/write permissions only for the logged in user and those that are included in the `plugdev` group. If this default MODE/GROUP paradigm is employed, it is up to the system admistrator to ensure that the `plugdev` group is both created, and that all local and/or remote users are subsequently added to that group. 
+Note: The default installation is designed for networked systems, such as SpyServers, that require an extra level of security to access their device. As such, using the cmake option `-DINSTALL_UDEV_RULES=ON` will allow read/write permissions only for the logged in user and those that are included in the `plugdev` group. If this default MODE/GROUP paradigm is employed, the `plugdev` group will be automatically created during the installation phase. However, it is up to the system admistrator to ensure that all local and/or remote users are subsequently added to that group.
 
 Conversely, Users of stand-alone non-Debian-based Linux systems may require less stringent `uaccess` udev rules in order for applications to 'see' the device. By using the cmake option `-DUSE_UACCESS_RULES=ON` the build process will dynamically change and install the udev rules such that the device is created using the `uaccess` paradigm, instead of the default MODE/GROUP.
 
