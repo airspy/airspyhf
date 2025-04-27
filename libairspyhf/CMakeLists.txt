@@ -21,7 +21,7 @@
 
 # Based heavily upon the libftdi cmake setup.
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.12)
 project(libairspyhf C)
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/airspyhf.h AIRSPYHF_H_CONTENTS)
 
