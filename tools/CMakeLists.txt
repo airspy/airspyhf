@@ -21,7 +21,7 @@
 
 # Based heavily upon the libftdi cmake setup.
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.12)
 project(airspyhf-tools C)
 set(MAJOR_VERSION 0)
 set(MINOR_VERSION 1)
@@ -68,8 +68,44 @@ endif()
 ########################################################################
 # Install udev rules
 ########################################################################
+set(REMOTE_USER_GROUP "plugdev")
+set(RULE_TEXT "ATTR{idVendor}==\"03eb\", ATTR{idProduct}==\"800c\", SYMLINK+=\"airspyhf-%k\", MODE=\"660\", GROUP=\"${REMOTE_USER_GROUP}\"")
+option(USE_UACCESS_RULES "Install udev uaccess rules" OFF)
 option(INSTALL_UDEV_RULES "Install udev rules for AirSpy HF+" OFF)
+
+if (USE_UACCESS_RULES)
+    string (REPLACE "MODE=\"660\", GROUP=\"${REMOTE_USER_GROUP}\"" "TAG+=\"uaccess\"" RULE_TEXT ${RULE_TEXT})
+    set (INSTALL_UDEV_RULES ON)
+    message (STATUS "Udev rules created for using uaccess")
+else (USE_UACCESS_RULES)
+    message (STATUS "Uaccess rules are not being used, set them with -DUSE_UACCESS_RULES=ON")
+endif (USE_UACCESS_RULES)
+
+file (WRITE "52-airspyhf.rules" "${RULE_TEXT}")
+
 if (INSTALL_UDEV_RULES)
+
+#   Create REMOTE_USER_GROUP if it doesn't already exist
+    if (NOT (USE_UACCESS_RULES))
+        if (TARGET ${REMOTE_USER_GROUP})
+            message (STATUS "Group ${REMOTE_USER_GROUP} already exists")
+        else (TARGET ${REMOTE_USER_GROUP})
+            if (NOT (EXISTS "/etc/sysusers.d/${REMOTE_USER_GROUP}.conf"))
+                file (WRITE "${REMOTE_USER_GROUP}.conf" "g ${REMOTE_USER_GROUP} -")
+                install (
+                    FILES ${REMOTE_USER_GROUP}.conf
+                    DESTINATION "/etc/sysusers.d"
+                    COMPONENT "udev"
+                )
+                install (
+                    CODE "execute_process (COMMAND systemd-sysusers)"
+                )
+                message (STATUS "Group ${REMOTE_USER_GROUP} did not exist and will be created during the install process")
+            endif (NOT (EXISTS "/etc/sysusers.d/${REMOTE_USER_GROUP}.conf"))
+        endif (TARGET ${REMOTE_USER_GROUP})
+    endif (NOT (USE_UACCESS_RULES))
+
+#   Install rules file
     install (
         FILES 52-airspyhf.rules
         DESTINATION "/etc/udev/rules.d"

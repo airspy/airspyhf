@@ -61,7 +61,9 @@ Debug version:
 
 `cd build`
 
-`cmake ../ -DINSTALL_UDEV_RULES=ON`
+`cmake ../ -DINSTALL_UDEV_RULES=ON` or
+`cmake ../ -USE_UACCESS_RULES=ON` or
+`cmake ../` (see usage notes below)
 
 `make`
 
@@ -69,12 +71,13 @@ Debug version:
 
 `sudo ldconfig`
 
-Users of non-Debian-based distrbutions (Fedora, etc), or distributions that don't use the plugdev group may need to modify the udev rules file to use the [uaccess paradigm](https://github.com/systemd/systemd/issues/4288). This can be performed by editing the udev rules file:
+Note: The default installation is designed for networked systems, such as SpyServers, that require an extra level of security to access their device. As such, using the cmake option `-DINSTALL_UDEV_RULES=ON` will allow read/write permissions only for the logged in user and those that are included in the `plugdev` group. If this default MODE/GROUP paradigm is employed, the `plugdev` group will be automatically created during the installation phase. However, it is up to the system admistrator to ensure that all local and/or remote users are subsequently added to that group.
 
-`sudo nano /etc/udev/rules.d/52-airspyhf.rules` 
+Conversely, Users of stand-alone non-Debian-based Linux systems may require less stringent `uaccess` udev rules in order for applications to 'see' the device. By using the cmake option `-DUSE_UACCESS_RULES=ON` the build process will dynamically change and install the udev rules such that the device is created using the `uaccess` paradigm, instead of the default MODE/GROUP.
 
-... and replacing the contents with: `ATTR{idVendor}=="03eb", ATTR{idProduct}=="800c", SYMLINK+="airspyhf-%k", TAG+="uaccess"`
-Device access should then work for users logging in locally, but may not work for ssh logins, or systemd services.
+This can later be reversed to use the default MODE/GROUP paradigm, if needed, by rebuilding with the `-DUSE_UACCESS_RULES=OFF -DINSTALL_UDEV_RULES=ON` options to restore and re-install it.
+
+MacOS deals with communicating with USB devices much differently than Linux. Therefore none of these udev options are required when running `cmake` on Macs.
 
 ## Clean CMake temporary files/dirs:
 
