@@ -83,6 +83,7 @@ enum airspyhf_board_id
 	AIRSPYHF_BOARD_ID_UNKNOWN_AIRSPYHF = 0,
 	AIRSPYHF_BOARD_ID_AIRSPYHF_REV_A = 1,
 	AIRSPYHF_BOARD_ID_AIRSPYHF_DISCOVERY_REV_A = 2,
+	AIRSPYHF_BOARD_ID_AIRSPYHF_RANGER_REV_A = 3,
 	AIRSPYHF_BOARD_ID_INVALID = 0xFF,
 };
 
@@ -104,6 +105,10 @@ typedef struct {
 
 #define MAX_NAME_STRING_SIZE (64)
 #define MAX_VERSION_STRING_SIZE MAX_NAME_STRING_SIZE
+
+#define AIRSPYHF_FLAGS_NONE                       0
+#define AIRSPYHF_FLAGS_OPTIMIZE_BAND_III          1
+#define AIRSPYHF_FLAGS_OPTIMIZE_PLL_INT_BOUNDARY  2
 
 typedef int (*airspyhf_sample_block_cb_fn) (airspyhf_transfer_t* transfer_fn);
 

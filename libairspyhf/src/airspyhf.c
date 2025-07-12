@@ -52,7 +52,7 @@ typedef int bool;
 #define MAX(a,b) ((a) > (b) ? a : b)
 #define MIN(a,b) ((a) < (b) ? a : b)
 
-#define SAMPLES_TO_TRANSFER (1024 * 2)
+#define SAMPLES_TO_TRANSFER (1024 * 4)
 #define SERIAL_NUMBER_UNUSED (0)
 #define FILE_DESCRIPTOR_UNUSED (-1)
 #define RAW_BUFFER_COUNT (8)
@@ -78,8 +78,6 @@ static const char str_prefix_serial_airspyhf[STR_PREFIX_SERIAL_AIRSPYHF_SIZE] =
 #define INITIAL_AMPLITUDE (-0.0045f)
 
 #define LIBUSB_CTRL_TIMEOUT_MS (500)
-
-#define IQ_BALANCER_EVAL_SKIP (RAW_BUFFER_COUNT)
 
 #pragma pack(push,1)
 
@@ -121,7 +119,6 @@ typedef struct airspyhf_device
 	float filter_gain;
 	airspyhf_complex_float_t vec;
 	struct iq_balancer_t *iq_balancer;
-	volatile int32_t iq_balancer_eval_skip;
 	uint32_t transfer_count;
 	int32_t transfer_live;
 	uint32_t buffer_size;
@@ -325,7 +322,6 @@ static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t 
 	airspyhf_complex_float_t rot;
 	double angle;
 	float conversion_gain;
-	uint8_t iqb_eval_skip = 0;
 
 	conversion_gain = scale * device->filter_gain;
 
@@ -335,18 +331,12 @@ static void convert_samples(airspyhf_device_t* device, airspyhf_complex_int16_t 
 		dest[i].im = src[i].im * conversion_gain;
 	}
 
-	if (device->iq_balancer_eval_skip > 0)
-	{
-		device->iq_balancer_eval_skip--;
-		iqb_eval_skip = 1;
-	}
-
 	if (device->enable_dsp)
 	{
 		if (!device->is_low_if)
 		{
 			// Zero IF requires external IQ correction
-			iq_balancer_process(device->iq_balancer, dest, count, iqb_eval_skip);
+			iq_balancer_process(device->iq_balancer, dest, count, 0);
 		}
 
 		// Fine tuning
@@ -380,7 +370,7 @@ static void* consumer_threadproc(void *arg)
 
 #ifdef _WIN32
 
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 
 #endif
 
@@ -486,7 +476,7 @@ static void* transfer_threadproc(void* arg)
 
 #ifdef _WIN32
 
-	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
 
 #endif
 
@@ -1109,7 +1099,6 @@ static int airspyhf_open_init(airspyhf_device_t** device, uint64_t serial_number
 	}
 
 	lib_device->iq_balancer = iq_balancer_create(INITIAL_PHASE, INITIAL_AMPLITUDE);
-	lib_device->iq_balancer_eval_skip = 0;
 
 	*device = lib_device;
 
@@ -1384,8 +1373,6 @@ int ADDCALL airspyhf_set_freq_double(airspyhf_device_t* device, const double fre
 
 	if (device->freq_khz != freq_khz)
 	{
-		device->iq_balancer_eval_skip = IQ_BALANCER_EVAL_SKIP;
-
 		buf[0] = (uint8_t)((freq_khz >> 24) & 0xff);
 		buf[1] = (uint8_t)((freq_khz >> 16) & 0xff);
 		buf[2] = (uint8_t)((freq_khz >> 8) & 0xff);
@@ -1743,7 +1730,7 @@ int ADDCALL airspyhf_get_bias_tee_count(airspyhf_device_t* device, int32_t* valu
 	uint8_t length;
 	int result;
 
-	length = sizeof(airspyhf_read_partid_serialno_t);
+	length = sizeof(int32_t);
 	result = libusb_control_transfer(
 		device->usb_device,
 		LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
