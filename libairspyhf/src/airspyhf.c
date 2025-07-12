@@ -190,8 +190,8 @@ static int free_transfers(airspyhf_device_t* device)
 		{
 			if (device->transfers[transfer_index] != NULL)
 			{
-				libusb_free_transfer(device->transfers[transfer_index]);
 				free(device->transfers[transfer_index]->buffer);
+				libusb_free_transfer(device->transfers[transfer_index]);
 				device->transfers[transfer_index] = NULL;
 			}
 		}
