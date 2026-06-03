@@ -24,6 +24,8 @@
 
 set(INSTALL_DEFAULT_BINDIR "bin" CACHE STRING "Appended to CMAKE_INSTALL_PREFIX")
 
+set(CMAKE_C_STANDARD 99)
+
 if(MSVC)
 add_library(libgetopt_static STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../getopt/getopt.c
