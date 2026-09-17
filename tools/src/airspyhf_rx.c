@@ -415,6 +415,7 @@ int main(int argc, char** argv)
 	t_u64toa ascii_u64_data1;
 	t_u64toa ascii_u64_data2;
 	const char* path = 0;
+	char wav_path_file[256];
 	int result;
 
 	struct timeval t_end;
@@ -558,14 +559,13 @@ int main(int argc, char** argv)
 		time_t rawtime;
 		struct tm * timeinfo;
 		char date_time[64];
-		char path_file[256];
 
 		time (&rawtime);
 		timeinfo = localtime (&rawtime);
 		/* File format AirSpy Year(2013), Month(11), Day(28), Hour Min Sec+Z, Freq kHz, IQ.wav */
 		strftime(date_time, sizeof(date_time), "%Y%m%d_%H%M%S", timeinfo);
-		snprintf(path_file, sizeof(path_file), "AirSpy_%sZ_%ukHz_IQ.wav", date_time, (uint32_t)(freq_hz/(1000ull)) );
-		path = path_file;
+		snprintf(wav_path_file, sizeof(wav_path_file), "AirSpy_%sZ_%ukHz_IQ.wav", date_time, (uint32_t)(freq_hz/(1000ull)) );
+		path = wav_path_file;
 		fprintf(stderr, "Receive wav file: [%s]\n", path);
 	}
 
